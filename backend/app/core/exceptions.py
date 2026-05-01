@@ -1,0 +1,2 @@
+class EthioCodeError(Exception):
+    pass

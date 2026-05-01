@@ -1,0 +1,1 @@
+﻿[['*'], ['*'], ['auth'], ['interviews'], ['code'], ['video'], ['proctoring'], ['blogs'], ['templates'], ['payments'], ['notifications'], ['analytics'], ['home'], {'status': 'ok'}]

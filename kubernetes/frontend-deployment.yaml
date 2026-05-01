@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ethiocode-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ethiocode-frontend
+  template:
+    metadata:
+      labels:
+        app: ethiocode-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ethiocode/frontend:latest
+          ports:
+            - containerPort: 5173
