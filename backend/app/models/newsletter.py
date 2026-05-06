@@ -5,7 +5,7 @@ from datetime import datetime
 
 class Newsletter(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
-    email: str = Field(..., regex=r'^[^@]+@[^@]+\.[^@]+$')
+    email: str = Field(..., pattern=r'^[^@]+@[^@]+\.[^@]+$')
     subscribed_at: datetime = Field(default_factory=datetime.utcnow)
 
     @field_validator('email')

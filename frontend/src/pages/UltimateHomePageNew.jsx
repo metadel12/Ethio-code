@@ -14,7 +14,6 @@ import EventsSection from "../components/home/EventsSection";
 import PricingSection from "../components/home/PricingSection";
 import NewsletterSection from "../components/home/NewsletterSection";
 import FAQSection from "../components/home/FAQSection";
-import Footer from "../components/home/Footer";
 import { fetchStats } from "../api/homeApi";
 
 export default function UltimateHomePage() {
@@ -100,9 +99,6 @@ export default function UltimateHomePage() {
 
       {/* 15. FAQ */}
       <FAQSection />
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

@@ -315,9 +315,11 @@ async def unsave_job(job_id: str, current_user: dict = Depends(get_current_user)
 @router.post("", status_code=201)
 async def post_job(payload: JobCreate, current_user: dict = Depends(get_current_user)):
     _require_role(current_user, "company", "admin")
-    company = await users_collection.find_one({"id": current_user.get("user_id")})
-    if company and company.get("role") == "company" and company.get("verification_status") != "approved":
-        raise HTTPException(status_code=403, detail="Company not yet verified by admin")
+    user_id = current_user.get("user_id")
+    company = await users_collection.find_one({"$or": [{"id": user_id}, {"_id": user_id}]})
+    # Only block if explicitly rejected, not just pending
+    if company and company.get("role") == "company" and company.get("verification_status") == "rejected":
+        raise HTTPException(status_code=403, detail="Company account has been rejected")
     doc = {
         **payload.model_dump(),
         "company_id": str(current_user.get("user_id")),
@@ -473,3 +475,116 @@ async def admin_stats(current_user: dict = Depends(get_current_user)):
         "pending_companies": await users_collection.count_documents({"role": "company", "verification_status": "pending"}),
         "total_companies": await users_collection.count_documents({"role": "company"}),
     }
+
+
+# ── Job Recommendations ───────────────────────────────────────────────────────
+
+@router.get("/recommendations")
+async def get_job_recommendations(
+    limit: int = Query(6, le=20),
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = current_user.get("user_id")
+    user = await users_collection.find_one({"$or": [{"id": user_id}, {"_id": user_id}]}) or {}
+    user_skills = user.get("skills", [])
+
+    query: dict = {"is_active": True}
+    if user_skills:
+        query["skills_required"] = {"$in": user_skills}
+
+    jobs = await jobs_collection.find(query).sort("posted_date", -1).limit(limit).to_list(length=limit)
+
+    # Fallback to latest jobs if no skill matches
+    if not jobs:
+        jobs = await jobs_collection.find({"is_active": True}).sort("posted_date", -1).limit(limit).to_list(length=limit)
+
+    result = []
+    for job in jobs:
+        j = _str_id(job)
+        matched = [s for s in user_skills if s in j.get("skills_required", [])]
+        j["match_score"] = round(len(matched) / max(len(j.get("skills_required", [1])), 1) * 100)
+        j["matched_skills"] = matched
+        if isinstance(j.get("posted_date"), datetime):
+            j["posted_date"] = j["posted_date"].isoformat()
+        result.append(j)
+
+    result.sort(key=lambda x: x["match_score"], reverse=True)
+    return {"recommendations": result, "based_on_skills": user_skills}
+
+
+# ── Companies ─────────────────────────────────────────────────────────────────
+
+class CompanyCreate(BaseModel):
+    company_name: str
+    industry: Optional[str] = None
+    website: Optional[str] = None
+    location: Optional[str] = None
+    size: Optional[str] = None  # e.g. "1-10", "11-50", "51-200"
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+
+
+@router.get("/companies")
+async def list_companies(
+    search: Optional[str] = None,
+    industry: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(12, le=50),
+    current_user: dict = Depends(get_current_user),
+):
+    query: dict = {"role": "company", "verification_status": "approved"}
+    if search:
+        query["company_name"] = {"$regex": search, "$options": "i"}
+    if industry:
+        query["industry"] = {"$regex": industry, "$options": "i"}
+
+    total = await users_collection.count_documents(query)
+    skip = (page - 1) * limit
+    companies = await users_collection.find(
+        query, {"hashed_password": 0, "two_factor_secret": 0, "backup_codes": 0}
+    ).skip(skip).limit(limit).to_list(length=limit)
+
+    result = []
+    for c in companies:
+        c["id"] = str(c.pop("_id"))
+        job_count = await jobs_collection.count_documents({"company_id": str(c.get("id", "")), "is_active": True})
+        c["active_jobs"] = job_count
+        result.append(c)
+
+    return {"companies": result, "total": total, "page": page, "pages": (total + limit - 1) // limit}
+
+
+@router.post("/companies", status_code=201)
+async def create_company_profile(payload: CompanyCreate, current_user: dict = Depends(get_current_user)):
+    """Allows a user to register/upgrade their account as a company."""
+    user_id = current_user.get("user_id")
+    update = {
+        **payload.model_dump(exclude_none=True),
+        "role": "company",
+        "verification_status": "pending",
+        "updated_at": datetime.now(timezone.utc),
+    }
+    await users_collection.update_one({"id": user_id}, {"$set": update})
+    return {"message": "Company profile created. Pending admin verification.", "status": "pending"}
+
+
+@router.get("/companies/{company_id}/jobs")
+async def get_company_public_jobs(
+    company_id: str,
+    page: int = Query(1, ge=1),
+    limit: int = Query(12, le=50),
+    current_user: dict = Depends(get_current_user),
+):
+    query = {"company_id": company_id, "is_active": True}
+    total = await jobs_collection.count_documents(query)
+    skip = (page - 1) * limit
+    jobs = await jobs_collection.find(query).sort("posted_date", -1).skip(skip).limit(limit).to_list(length=limit)
+
+    result = []
+    for job in jobs:
+        j = _str_id(job)
+        if isinstance(j.get("posted_date"), datetime):
+            j["posted_date"] = j["posted_date"].isoformat()
+        result.append(j)
+
+    return {"jobs": result, "total": total, "page": page, "pages": (total + limit - 1) // limit}

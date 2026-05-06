@@ -1,10 +1,16 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/navbar";
+// import ModernNavbar from "./components/ModernNavbar";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { SocketProvider } from "./contexts/SocketContext";
 import "./App.css";
 
-import TemplatesPage from "./pages/templates";
+import TemplateListPage from "./pages/TemplateListPage";
+import TemplateDetailPage from "./pages/TemplateDetailPage";
+import CreatorDashboard from "./pages/CreatorDashboard";
+import AdminPanel from "./pages/AdminPanel";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import CodeEditorPage from "./pages/code-editor";
 import WhiteboardPage from "./pages/whiteboard";
 import SecurityPage from "./pages/security";
@@ -25,7 +31,7 @@ import TestimonialsPage from "./pages/testimonials";
 import BlogsPage from "./pages/blogs";
 import ContactPage from "./pages/contact";
 import LoginPage from "./pages/login";
-import DashboardPage from "./pages/dashboard";
+import DashboardPage from "./pages/DashboardPage";
 import NotFound from "./pages/not-found";
 import UltimateHomePage from "./pages/UltimateHomePageNew";
 import JobsPage from "./pages/JobsPage";
@@ -34,17 +40,25 @@ import MyApplicationsPage from "./pages/MyApplicationsPage";
 import SavedJobsPage from "./pages/SavedJobsPage";
 import CompanyDashboardPage from "./pages/CompanyDashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import PostJobPage from "./pages/PostJobPage";
+import ProjectListingsPage from "./pages/ProjectListingsPage";
+import CreateProjectPage from "./pages/CreateProjectPage";
+import MyProjectsPage from "./pages/MyProjectsPage";
+import ProjectDetailPage from "./pages/ProjectDetailPage";
+
+import Footer from "./components/Footer";
 
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <SocketProvider>
         <Router>
-          <div className="App">
-            <Navbar />
+          <Navbar />
+          <div className="App pt-16">
             <Routes>
               <Route path="/" element={<UltimateHomePage />} />
-              <Route path="/templates" element={<TemplatesPage />} />
+              <Route path="/templates" element={<TemplateListPage />} />
               <Route path="/code-editor" element={<CodeEditorPage />} />
               <Route path="/whiteboard" element={<WhiteboardPage />} />
               <Route path="/security" element={<SecurityPage />} />
@@ -66,16 +80,35 @@ export default function App() {
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/marketplace" element={<TemplateListPage />} />
+              <Route path="/templates/:id" element={<TemplateDetailPage />} />
+              <Route path="/creator" element={
+                <ProtectedRoute>
+                  <CreatorDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/templates" element={
+                <ProtectedRoute requireAdmin>
+                  <AdminPanel />
+                </ProtectedRoute>
+              } />
               <Route path="/jobs" element={<JobsPage />} />
               <Route path="/jobs/saved" element={<SavedJobsPage />} />
               <Route path="/jobs/applications" element={<MyApplicationsPage />} />
               <Route path="/jobs/company" element={<CompanyDashboardPage />} />
+              <Route path="/jobs/post" element={<PostJobPage />} />
+              <Route path="/projects" element={<ProjectListingsPage />} />
+              <Route path="/projects/create" element={<CreateProjectPage />} />
+              <Route path="/projects/mine" element={<MyProjectsPage />} />
+              <Route path="/projects/:id" element={<ProjectDetailPage />} />
               <Route path="/jobs/admin" element={<AdminDashboardPage />} />
               <Route path="/jobs/:id" element={<JobDetailsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <Footer />
           </div>
         </Router>
+        </SocketProvider>
       </AuthProvider>
     </ThemeProvider>
   );

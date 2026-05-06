@@ -17,7 +17,12 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s, color 0.3s;
+    /* Responsive font sizes */
+    font-size: 14px; /* Mobile & Tablet */
   }
+  @media (min-width: 768px) { body { font-size: 15px; } } /* Small Desktop */
+  @media (min-width: 1024px) { body { font-size: 16px; } } /* Desktop & Large Desktop */
+  @media (min-width: 1536px) { body { font-size: 18px; } } /* Ultra Wide */
   /* Dark mode override */
   .dark body {
     background: #0F172A;
@@ -50,6 +55,49 @@
 
   /* ── Layout ── */
   .wrap { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
+
+  /* ── Responsive Grid ── */
+  .grid-responsive {
+    @apply grid gap-6;
+    grid-template-columns: repeat(1, minmax(0, 1fr)); /* Mobile: 1 col */
+  }
+  @media (min-width: 640px) {
+    .grid-responsive { grid-template-columns: repeat(2, minmax(0, 1fr)); } /* Tablet: 2 cols */
+  }
+  @media (min-width: 768px) {
+    .grid-responsive { grid-template-columns: repeat(3, minmax(0, 1fr)); } /* Small Desktop: 3 cols */
+  }
+  @media (min-width: 1024px) {
+    .grid-responsive { grid-template-columns: repeat(4, minmax(0, 1fr)); } /* Desktop: 4 cols */
+  }
+  @media (min-width: 1280px) {
+    .grid-responsive { grid-template-columns: repeat(6, minmax(0, 1fr)); } /* Large Desktop: 6 cols */
+  }
+  @media (min-width: 1536px) {
+    .grid-responsive { grid-template-columns: repeat(8, minmax(0, 1fr)); } /* Ultra Wide: 8 cols */
+  }
+
+  /* ── Sidebar States ── */
+  .sidebar {
+    @apply fixed top-0 left-0 h-full bg-dark-surface border-r border-dark-border transition-all duration-300 z-40;
+  }
+  /* Mobile: Hidden (drawer) */
+  .sidebar { @apply -translate-x-full w-64; }
+  .sidebar.open { @apply translate-x-0; }
+  /* Tablet: Collapsed */
+  @media (min-width: 640px) {
+    .sidebar { @apply translate-x-0 w-16; }
+    .sidebar.expanded { @apply w-64; }
+  }
+  /* Small Desktop: Mini */
+  @media (min-width: 768px) {
+    .sidebar { @apply w-20; }
+    .sidebar.expanded { @apply w-64; }
+  }
+  /* Desktop+: Expanded by default */
+  @media (min-width: 1024px) {
+    .sidebar { @apply w-64; }
+  }
 
   /* ── Section header ── */
   .eyebrow {

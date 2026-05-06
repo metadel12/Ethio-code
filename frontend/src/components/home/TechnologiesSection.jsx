@@ -11,7 +11,7 @@ const technologies = [
   ["Vue.js", "Frontend", "Beginner", "https://vuejs.org/guide/introduction.html", "https://youtube.com/@NetNinja", "", "https://www.vuemastery.com/courses/intro-to-vue-3/intro-to-vue3/", "https://vueschool.io"],
   ["Angular", "Frontend", "Intermediate", "https://angular.dev", "https://youtube.com/@AngularUniversity", "", "https://angular.dev/tutorials", "https://frontendmentor.io"],
   ["Next.js", "Frontend", "Intermediate", "https://nextjs.org/docs", "https://youtube.com/@javascriptmastery", "", "https://nextjs.org/learn", "https://vercel.com/templates"],
-  ["Node.js", "Frontend", "Intermediate", "https://nodejs.org/en/docs", "https://youtube.com/@TraversyMedia", "https://youtube.com/results?search_query=node.js+amharic", "https://nodeschool.io", "https://exercism.org/tracks/javascript"],
+  ["Node.js", "Backend", "Intermediate", "https://nodejs.org/en/docs", "https://youtube.com/@TraversyMedia", "https://youtube.com/results?search_query=node.js+amharic", "https://nodeschool.io", "https://exercism.org/tracks/javascript"],
   ["FastAPI", "Backend", "Intermediate", "https://fastapi.tiangolo.com", "https://youtube.com/@freecodecamp", "", "https://fastapi.tiangolo.com/tutorial/", "https://github.com/tiangolo/full-stack-fastapi-template"],
   ["MongoDB", "Databases", "Beginner", "https://www.mongodb.com/docs/", "https://youtube.com/@MongoDB", "", "https://learn.mongodb.com", "https://learn.mongodb.com"],
   ["PostgreSQL", "Databases", "Beginner", "https://www.postgresql.org/docs/", "https://youtube.com/@freecodecamp", "", "https://www.postgresqltutorial.com", "https://pgexercises.com"],

@@ -1,20 +1,20 @@
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional
-from datetime import datetime, date, time
+from datetime import datetime, date, time as time_type
 
 
 class Event(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     title: str = Field(..., min_length=1, max_length=200)
-    date: date = Field(...)
-    time: time = Field(...)
+    event_date: date = Field(..., alias="date")
+    event_time: time_type = Field(..., alias="time")
     location: str = Field(..., min_length=1, max_length=200)
     speaker: str = Field(..., min_length=1, max_length=200)
     link: Optional[str] = Field(None, max_length=500)
     is_virtual: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    @field_validator('date')
+    @field_validator('event_date')
     @classmethod
     def validate_date(cls, v):
         return v
@@ -24,7 +24,7 @@ class Event(BaseModel):
         json_encoders={
             datetime: lambda v: v.isoformat() if v else None,
             date: lambda v: v.isoformat() if v else None,
-            time: lambda v: v.isoformat() if v else None
+            time_type: lambda v: v.isoformat() if v else None
         },
         json_schema_extra={
             "example": {

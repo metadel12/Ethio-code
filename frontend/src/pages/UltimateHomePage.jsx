@@ -90,19 +90,19 @@ const hubs = [
   { city: "Jimma", x: "40%", y: "66%" },
 ];
 
-const companies = [
-  "Google",
-  "Microsoft",
-  "Amazon",
-  "Meta",
-  "Netflix",
-  "Chapa",
-  "Safaricom",
-  "Dashen",
-  "Awash",
-  "Ethio Telecom",
-  "Kifiya",
-  "Bank of Abyssinia",
+const COMPANIES = [
+  { name: "Google",         bg: "#fff",     Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16.1 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.7 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.5 0 10.5-1.9 14.3-5l-6.6-5.4C29.7 37.3 27 38 24 38c-6 0-10.6-3.1-11.8-7.5l-7 5.4C8.1 42.5 15.5 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.6 2.3-2 4.3-3.8 5.7l6.6 5.4C42.5 36.2 45 30.5 45 24c0-1.3-.2-2.7-.5-4z"/></svg> },
+  { name: "Microsoft",      bg: "#fff",     Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><path fill="#F35325" d="M2 2h21v21H2z"/><path fill="#81BC06" d="M25 2h21v21H25z"/><path fill="#05A6F0" d="M2 25h21v21H2z"/><path fill="#FFBA08" d="M25 25h21v21H25z"/></svg> },
+  { name: "Chapa",          bg: "#e8f5ee",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><circle cx="24" cy="24" r="23" fill="#2E8B57"/><path fill="#fff" d="M16 14h10c4.4 0 8 3.6 8 8s-3.6 8-8 8h-4v6h-6V14zm6 11h4c1.1 0 2-.9 2-2s-.9-2-2-2h-4v4z"/></svg> },
+  { name: "Safaricom",      bg: "#e8f5e9",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><circle cx="24" cy="24" r="23" fill="#4CAF50"/><path fill="#fff" d="M24 12c-6.6 0-12 5.4-12 12s5.4 12 12 12 12-5.4 12-12-5.4-12-12-12zm0 4c4.4 0 8 3.6 8 8s-3.6 8-8 8-8-3.6-8-8 3.6-8 8-8z"/><circle cx="24" cy="24" r="4" fill="#fff"/></svg> },
+  { name: "Dashen Bank",    bg: "#e8eaf6",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><rect width="48" height="48" rx="8" fill="#1A237E"/><rect x="8" y="10" width="32" height="4" rx="2" fill="#FFD700"/><rect x="10" y="18" width="4" height="16" rx="2" fill="#fff"/><rect x="18" y="18" width="4" height="16" rx="2" fill="#fff"/><rect x="26" y="18" width="4" height="16" rx="2" fill="#fff"/><rect x="34" y="18" width="4" height="16" rx="2" fill="#fff"/><rect x="8" y="36" width="32" height="4" rx="2" fill="#FFD700"/></svg> },
+  { name: "Ethio Telecom",  bg: "#fdecea",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><rect width="48" height="48" rx="8" fill="#DA251D"/><path fill="#FFD700" d="M24 8c-8.8 0-16 7.2-16 16s7.2 16 16 16 16-7.2 16-16S32.8 8 24 8zm0 6c5.5 0 10 4.5 10 10S29.5 34 24 34 14 29.5 14 24s4.5-10 10-10z"/><circle cx="24" cy="24" r="4" fill="#fff"/></svg> },
+  { name: "Kifiya",         bg: "#fff3e0",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><rect width="48" height="48" rx="8" fill="#FF6B00"/><path fill="#fff" d="M12 12h8v10l6-10h10L24 26l12 10H26l-6-10v10h-8z"/></svg> },
+  { name: "Awash Bank",     bg: "#e8f5e9",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><rect width="48" height="48" rx="8" fill="#006400"/><path fill="#FFD700" d="M24 6l3.5 10.5H38l-8.7 6.3 3.3 10.2L24 27l-8.6 6 3.3-10.2L9.9 16.5H20.5z"/></svg> },
+  { name: "BoA",            bg: "#e3f2fd",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><rect width="48" height="48" rx="8" fill="#003087"/><path fill="#FFD700" d="M8 32l16-20 16 20H8z"/><rect x="14" y="32" width="20" height="4" rx="2" fill="#fff"/></svg> },
+  { name: "Nib Insurance",  bg: "#fce4ec",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><rect width="48" height="48" rx="8" fill="#8B0000"/><path fill="#fff" d="M24 8l14 7v11c0 8-6 14-14 16-8-2-14-8-14-16V15z"/><path fill="#8B0000" d="M24 14l9 4.5V26c0 5-4 9-9 10-5-1-9-5-9-10v-7.5z"/><path fill="#FFD700" d="M21 23l2 2 5-5 1.5 1.5-6.5 6.5-3.5-3.5z"/></svg> },
+  { name: "BelCash",        bg: "#e1f5fe",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><rect width="48" height="48" rx="8" fill="#0077B6"/><rect x="10" y="14" width="28" height="20" rx="4" fill="#fff" opacity="0.2"/><rect x="10" y="14" width="28" height="20" rx="4" stroke="#fff" strokeWidth="2" fill="none"/><circle cx="24" cy="24" r="6" fill="#FFD700"/><path fill="#0077B6" d="M22 22h4v4h-4z"/></svg> },
+  { name: "Addis Software", bg: "#1B1B2F",  Logo: () => <svg viewBox="0 0 48 48" className="h-10 w-10"><rect width="48" height="48" rx="8" fill="#1B1B2F"/><rect x="6" y="10" width="36" height="28" rx="4" fill="#0d1117"/><path fill="#00FF88" d="M14 20l-4 4 4 4 2-2-2-2 2-2z"/><path fill="#00FF88" d="M34 20l4 4-4 4-2-2 2-2-2-2z"/><rect x="21" y="18" width="2" height="12" rx="1" fill="#FF3366" transform="rotate(15 22 24)"/></svg> },
 ];
 
 const fallbackJobs = [
@@ -449,14 +449,24 @@ export default function UltimateHomePage() {
         </div>
       </section>
 
-      <section className="border-y border-white/10 bg-white/[0.035] px-4 py-10">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row lg:items-center">
-          <span className="whitespace-nowrap text-xs font-black uppercase tracking-[0.24em] text-slate-500">Social proof fortress</span>
-          <div className="flex flex-wrap gap-3">
-            {companies.map((company) => (
-              <span key={company} className="rounded-full border border-white/10 bg-slate-950/55 px-4 py-2 text-sm font-black text-slate-200">
-                {company}
-              </span>
+      <section className="border-y border-white/10 bg-white/[0.035] px-4 py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 text-center">
+            <h2 className="font-display text-3xl font-black tracking-tight text-white md:text-4xl">Companies That Trust EthioCode</h2>
+            <p className="mt-2 text-slate-400">Our graduates work at Ethiopia's leading organizations</p>
+          </div>
+          <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
+            {COMPANIES.map(({ name, bg, Logo }) => (
+              <motion.div
+                key={name}
+                whileHover={{ y: -4, scale: 1.06 }}
+                className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl transition-all duration-300 hover:border-emerald-300/30 hover:bg-slate-800/80"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl" style={{ background: bg }}>
+                  <Logo />
+                </div>
+                <span className="text-center text-[11px] font-bold text-slate-300 leading-tight">{name}</span>
+              </motion.div>
             ))}
           </div>
         </div>

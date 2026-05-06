@@ -1,15 +1,39 @@
-import { defineConfig } from 'vite'
+import { defineConfig, splitVendorChunkPlugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    splitVendorChunkPlugin(),
+  ],
+
   server: {
     proxy: {
-      "/api": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
+      "/api": { target: "http://localhost:8000", changeOrigin: true },
+      "/ws":  { target: "ws://localhost:8000",  ws: true, changeOrigin: true },
+    },
+  },
+
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    cssMinify: true,
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-core':  ['react', 'react-dom', 'react-router-dom'],
+          'ui-icons':    ['react-icons'],
+          'charts':      ['recharts'],
+          'editor':      ['@monaco-editor/react'],
+          'motion':      ['framer-motion'],
+        },
       },
     },
+  },
+
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
   },
 })
