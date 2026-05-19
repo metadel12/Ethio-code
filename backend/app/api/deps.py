@@ -1,11 +1,6 @@
-from collections.abc import Generator
-
-from app.database import SessionLocal
+from app.database import db
 
 
-def get_db() -> Generator:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    """Get MongoDB database instance"""
+    return db
