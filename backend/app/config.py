@@ -11,10 +11,7 @@ class Settings(BaseSettings):
     PROJECT_DESCRIPTION: str = "Ethiopian Coding Platform API - Empowering Ethiopian Developers"
     
     # ==================== DATABASES ====================
-    # SQLite (for existing features)
-    DATABASE_URL: str = "sqlite:///./ethiocode.db"
-    
-    # MongoDB (for new features)
+    # MongoDB (Primary Database)
     MONGODB_URL: str = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "ethiocode"
     DATABASE_NAME: str = "ethiocode"  # Alias for MONGODB_DB_NAME
