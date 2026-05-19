@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ethiocode-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ethiocode-backend
+  template:
+    metadata:
+      labels:
+        app: ethiocode-backend
+    spec:
+      containers:
+        - name: backend
+          image: ethiocode/backend:latest
+          ports:
+            - containerPort: 8000
