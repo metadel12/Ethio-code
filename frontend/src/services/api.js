@@ -1,6 +1,6 @@
 // src/services/api.js
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8001";
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "https://ethio-code-1.onrender.com/";
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 export const getToken = () => localStorage.getItem("access_token");
@@ -25,25 +25,25 @@ let _refreshPromise = null;
 
 async function refreshAccessToken() {
   if (_refreshPromise) return _refreshPromise;
-  
+
   _refreshPromise = (async () => {
     const refresh = getRefreshToken();
     if (!refresh) throw new Error("No refresh token");
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
         method: "POST",
-        headers: { 
-          Authorization: `Bearer ${refresh}`, 
-          "Content-Type": "application/json" 
+        headers: {
+          Authorization: `Bearer ${refresh}`,
+          "Content-Type": "application/json"
         },
       });
-      
+
       if (!response.ok) {
         clearTokens();
         throw new Error("Session expired");
       }
-      
+
       const data = await response.json();
       setTokens(data.access_token, data.refresh_token);
       return data.access_token;
@@ -51,46 +51,46 @@ async function refreshAccessToken() {
       clearTokens();
       throw error;
     }
-  })().finally(() => { 
-    _refreshPromise = null; 
+  })().finally(() => {
+    _refreshPromise = null;
   });
-  
+
   return _refreshPromise;
 }
 
 // ── Core fetch ────────────────────────────────────────────────────────────────
 const buildHeaders = (raw = {}, withAuth = true) => {
   const headers = { ...raw };
-  
+
   // Set default Content-Type if not specified
   if (!headers["Content-Type"] && !(headers["Content-Type"] === null)) {
     headers["Content-Type"] = "application/json";
   }
-  
+
   // Remove Content-Type if explicitly set to null
   if (headers["Content-Type"] === null) {
     delete headers["Content-Type"];
   }
-  
+
   // Add Authorization token if required
   if (withAuth) {
     const token = getToken();
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
-  
+
   // CSRF double-submit for mutations (POST, PUT, PATCH, DELETE)
   const csrf = getCsrfToken();
   if (csrf && ["POST", "PUT", "PATCH", "DELETE"].includes(raw.method || "")) {
     headers["X-CSRF-Token"] = csrf;
   }
-  
+
   return headers;
 };
 
 // ── Main API fetch function ───────────────────────────────────────────────────
 export const apiFetch = async (path, options = {}, _retry = true) => {
   const t0 = performance.now();
-  
+
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
@@ -113,7 +113,7 @@ export const apiFetch = async (path, options = {}, _retry = true) => {
     // Parse response based on content type
     const contentType = response.headers.get("content-type") ?? "";
     let data;
-    
+
     if (contentType.includes("application/json")) {
       data = await response.json();
     } else if (contentType.includes("text/")) {
@@ -137,7 +137,7 @@ export const apiFetch = async (path, options = {}, _retry = true) => {
     }
 
     return data;
-    
+
   } catch (error) {
     // Handle network errors
     if (error.name === "TypeError" && error.message === "Failed to fetch") {
@@ -150,27 +150,27 @@ export const apiFetch = async (path, options = {}, _retry = true) => {
 // ── Convenience methods ───────────────────────────────────────────────────────
 export const api = {
   get: (path, options) => apiFetch(path, { method: "GET", ...options }),
-  
-  post: (path, body, options) => apiFetch(path, { 
-    method: "POST", 
+
+  post: (path, body, options) => apiFetch(path, {
+    method: "POST",
     body: JSON.stringify(body),
-    ...options 
+    ...options
   }),
-  
-  put: (path, body, options) => apiFetch(path, { 
-    method: "PUT", 
+
+  put: (path, body, options) => apiFetch(path, {
+    method: "PUT",
     body: JSON.stringify(body),
-    ...options 
+    ...options
   }),
-  
-  patch: (path, body, options) => apiFetch(path, { 
-    method: "PATCH", 
+
+  patch: (path, body, options) => apiFetch(path, {
+    method: "PATCH",
     body: JSON.stringify(body),
-    ...options 
+    ...options
   }),
-  
+
   delete: (path, options) => apiFetch(path, { method: "DELETE", ...options }),
-  
+
   // Form data upload (for files)
   upload: (path, formData, options) => {
     return apiFetch(path, {
@@ -186,19 +186,19 @@ export const api = {
 export const deviceTestAPI = {
   // Save test results
   saveResults: (data) => api.post("/api/v1/device-test/results", data),
-  
+
   // Get latest test results
   getLatestResults: () => api.get("/api/v1/device-test/results/latest"),
-  
+
   // Get test history
   getHistory: (limit = 10) => api.get(`/api/v1/device-test/results/history?limit=${limit}`),
-  
+
   // Test network speed
   testNetworkSpeed: () => api.get("/api/v1/device-test/network-speed"),
-  
+
   // Save device settings
   saveSettings: (settings) => api.post("/api/v1/device-test/settings", settings),
-  
+
   // Get device settings
   getSettings: () => api.get("/api/v1/device-test/settings"),
 };
