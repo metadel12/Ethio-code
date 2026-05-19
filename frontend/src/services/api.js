@@ -1,7 +1,7 @@
 // src/services/api.js
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "https://ethio-code-1.onrender.com/";
-
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "https://ethio-code-backend.onrender.com/";
+ht
 // ── Token helpers ─────────────────────────────────────────────────────────────
 export const getToken = () => localStorage.getItem("access_token");
 export const getRefreshToken = () => localStorage.getItem("refresh_token");
