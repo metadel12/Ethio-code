@@ -34,11 +34,15 @@ self.addEventListener('fetch', e => {
   // Assets: cache-first
   e.respondWith(
     caches.match(request).then(cached => {
-      const network = fetch(request).then(res => {
-        if (res.ok) caches.open(CACHE).then(c => c.put(request, res.clone()));
+      if (cached) return cached;
+
+      return fetch(request).then(res => {
+        if (res.ok && res.status === 200) {
+          const resClone = res.clone();
+          caches.open(CACHE).then(c => c.put(request, resClone));
+        }
         return res;
       });
-      return cached || network;
     })
   );
 });
@@ -49,8 +53,8 @@ self.addEventListener('push', e => {
   e.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: '/assets/icons/icon-192.png',
-      badge: '/assets/icons/icon-72.png',
+      icon: '/vite.svg',
+      badge: '/vite.svg',
       data: data.url ?? '/',
       vibrate: [100, 50, 100],
     })

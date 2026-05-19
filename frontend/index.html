@@ -1,8 +1,10 @@
 <!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#ffffff" />
   <link rel="manifest" href="/manifest.json" />
@@ -10,10 +12,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="EthioCode" />
-  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/vite.svg" />
   <!-- Security -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-  <meta http-equiv="X-Frame-Options" content="DENY" />
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
   <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
   <!-- Performance: preconnect to external origins -->
@@ -23,7 +24,8 @@
   <link rel="dns-prefetch" href="//localhost:8000" />
   <title>EthioCode - Empowering Ethiopia's Tech Revolution</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <script>
     // Prevent theme flash - set initial theme before React loads
     try {
@@ -32,7 +34,7 @@
       const theme = stored || (prefersDark ? 'dark' : 'light');
       document.documentElement.classList.add(theme);
       document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'dark' ? '#0F172A' : '#FFFFFF');
-    } catch (e) {}
+    } catch (e) { }
   </script>
 </head>
 
@@ -40,4 +42,5 @@
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
+
 </html>
