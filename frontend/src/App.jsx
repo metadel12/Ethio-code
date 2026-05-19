@@ -63,7 +63,7 @@ import MyProjectsPage from "./pages/MyProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import VideoChatPage from "./pages/VideoChatPage";
 import VideoCall from "./components/video/VideoCall";
-import Footer from "./components/Footer";
+// import Footer from "./components/Footer";
 
 function AppContent() {
   const location = useLocation();
