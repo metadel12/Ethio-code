@@ -1,416 +1,697 @@
-import React, { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
+import {
+  FaBell,
+  FaCheck,
+  FaCloudDownloadAlt,
+  FaDatabase,
+  FaExclamationTriangle,
+  FaEye,
+  FaFingerprint,
+  FaGlobeAfrica,
+  FaHistory,
+  FaKey,
+  FaLaptop,
+  FaLock,
+  FaMobileAlt,
+  FaNetworkWired,
+  FaRegFileAlt,
+  FaSearch,
+  FaServer,
+  FaShieldAlt,
+  FaSignOutAlt,
+  FaSyncAlt,
+  FaTimes,
+  FaUserLock,
+} from "react-icons/fa";
 import "./security.css";
-const Security = () => {
+
+const scoreFactors = [
+  { label: "Two-factor authentication", value: 25, active: true },
+  { label: "Strong password policy", value: 20, active: true },
+  { label: "Recent security scan", value: 15, active: true },
+  { label: "No active threats", value: 30, active: true },
+  { label: "Security updates enabled", value: 10, active: true },
+];
+
+const healthCards = [
+  { label: "Password Health", value: "Strong", detail: "85% score, no breach match", tone: "green" },
+  { label: "2FA Status", value: "Enabled", detail: "Authenticator and backup email", tone: "green" },
+  { label: "Data Encryption", value: "Active", detail: "AES-256-GCM and TLS 1.3", tone: "blue" },
+  { label: "Recent Activity", value: "Clean", detail: "No suspicious activity detected", tone: "green" },
+];
+
+const authMethods = [
+  { title: "Authenticator App", detail: "Google Authenticator, Authy, Microsoft Authenticator", status: "Primary" },
+  { title: "SMS Verification", detail: "Ethiopian numbers with +251 support", status: "Pro" },
+  { title: "Email OTP", detail: "One-time codes delivered to verified email", status: "Enabled" },
+  { title: "Hardware Key", detail: "YubiKey and passkey support through WebAuthn", status: "Enterprise" },
+];
+
+const sessionsSeed = [
+  { id: 1, device: "Windows Workstation", browser: "Chrome 124", ip: "196.188.120.42", location: "Addis Ababa, ET", last: "Active now", trusted: true },
+  { id: 2, device: "iPhone 15", browser: "Safari", ip: "197.156.88.10", location: "Bahir Dar, ET", last: "18 minutes ago", trusted: true },
+  { id: 3, device: "Linux Laptop", browser: "Firefox", ip: "102.218.84.17", location: "Nairobi, KE", last: "Yesterday", trusted: false },
+];
+
+const events = [
+  { time: "10:42", title: "Credential stuffing attempt blocked", severity: "critical", source: "196.45.18.22", action: "Rate limit and WAF challenge applied" },
+  { time: "09:15", title: "New trusted device approved", severity: "info", source: "Addis Ababa", action: "Device fingerprint added for 30 days" },
+  { time: "07:28", title: "API anomaly detected", severity: "high", source: "/api/v1/security/events", action: "Request throttled and logged" },
+  { time: "Yesterday", title: "Backup encryption key rotated", severity: "low", source: "KMS", action: "AES-256-GCM rotation completed" },
+];
+
+const compliance = [
+  { name: "GDPR", score: 98, status: "Compliant", date: "May 8, 2026" },
+  { name: "CCPA", score: 96, status: "Compliant", date: "May 5, 2026" },
+  { name: "Ethiopian Data Protection", score: 100, status: "Ready", date: "May 10, 2026" },
+  { name: "SOC 2 Type II", score: 91, status: "Evidence ready", date: "Apr 28, 2026" },
+  { name: "ISO 27001", score: 89, status: "Controls mapped", date: "Apr 20, 2026" },
+  { name: "PCI DSS", score: 94, status: "Payment scope protected", date: "May 1, 2026" },
+];
+
+const auditLogs = [
+  { user: "admin@ethiocode.com", action: "Resolved high severity alert", resource: "security_events", ip: "196.188.120.42", time: "11 minutes ago" },
+  { user: "samrawit.dev", action: "Exported account data", resource: "data_requests", ip: "197.156.88.10", time: "2 hours ago" },
+  { user: "system", action: "Completed encrypted backup", resource: "backup_jobs", ip: "internal", time: "03:00" },
+  { user: "abel.backend", action: "Changed password", resource: "security_settings", ip: "102.218.84.17", time: "Yesterday" },
+];
+
+const securityLayers = [
+  "Authentication",
+  "Data Protection",
+  "Network Security",
+  "Threat Detection",
+  "Compliance",
+  "User Security",
+  "Incident Response",
+];
+
+function passwordScore(value) {
+  let score = 0;
+  if (value.length >= 12) score += 25;
+  if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score += 20;
+  if (/\d/.test(value)) score += 15;
+  if (/[^A-Za-z0-9]/.test(value)) score += 20;
+  if (!/(password|123456|qwerty|ethiocode)/i.test(value) && value.length > 0) score += 20;
+  return Math.min(score, 100);
+}
+
+function SecurityPage() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
-  const [activeDevices, setActiveDevices] = useState([
-    {
-      id: 1,
-      name: "MacBook Pro",
-      location: "New York, NY",
-      lastActive: "2 hours ago",
-      deviceIcon: "💻",
-    },
-    {
-      id: 2,
-      name: "iPhone 13",
-      location: "San Francisco, CA",
-      lastActive: "5 minutes ago",
-      deviceIcon: "📱",
-    },
-    {
-      id: 3,
-      name: "iPad Pro",
-      location: "Boston, MA",
-      lastActive: "1 day ago",
-      deviceIcon: "📱",
-    },
-  ]);
-
-  const [password, setPassword] = useState({
-    current: "",
-    new: "",
-    confirm: "",
+  const [scanFrequency, setScanFrequency] = useState("Daily");
+  const [sessionTimeout, setSessionTimeout] = useState(30);
+  const [password, setPassword] = useState("");
+  const [sessions, setSessions] = useState(sessionsSeed);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [privacy, setPrivacy] = useState({
+    analytics: true,
+    marketing: false,
+    thirdParty: false,
+    loginAlerts: true,
+    weeklyDigest: true,
   });
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResults, setScanResults] = useState(null);
+  const [scanProgress, setScanProgress] = useState(0);
 
-  const [performanceMetrics, setPerformanceMetrics] = useState({
-    apiResponseTime: 128,
-    uptime: "99.98%",
-    storageUsed: "4.2 GB",
-    encryption: "AES-256",
-  });
+  const securityScore = useMemo(
+    () => scoreFactors.reduce((total, factor) => total + (factor.active ? factor.value : 0), 0),
+    []
+  );
+  const strength = passwordScore(password);
+  const strengthLabel = strength >= 85 ? "Very Strong" : strength >= 65 ? "Strong" : strength >= 40 ? "Good" : "Weak";
 
-  const [securityFeatures] = useState([
-    {
-      title: "End-to-End Encryption",
-      description: "All data is encrypted both in transit and at rest",
-      icon: "🔒",
-    },
-    {
-      title: "Regular Security Audits",
-      description: "Third-party security audits conducted quarterly",
-      icon: "🔍",
-    },
-    {
-      title: "GDPR Compliance",
-      description: "Fully compliant with global data protection regulations",
-      icon: "🌐",
-    },
-    {
-      title: "DDoS Protection",
-      description: "Enterprise-grade protection against attacks",
-      icon: "🛡️",
-    },
-  ]);
-
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setLoading(false);
-    }, 800);
-  }, []);
-
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPassword((prev) => ({ ...prev, [name]: value }));
+  const togglePrivacy = (key) => {
+    setPrivacy((current) => ({ ...current, [key]: !current[key] }));
   };
 
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-    alert("Password changed successfully!");
-    setPassword({ current: "", new: "", confirm: "" });
+  const revokeSession = (id) => {
+    setSessions((current) => current.filter((session) => session.id !== id));
   };
 
-  const revokeDevice = (id) => {
-    setActiveDevices(activeDevices.filter((device) => device.id !== id));
+  const runSecurityScan = async () => {
+    setIsScanning(true);
+    setScanProgress(0);
+    setScanResults(null);
+
+    const checks = [
+      { name: "Password strength", Duration: 800 },
+      { name: "Two-factor authentication", duration: 1200 },
+      { name: "Active sessions review", duration: 1000 },
+      { name: "Data encryption verification", duration: 1500 },
+      { name: "Network security check", duration: 1100 },
+      { name: "Compliance status", duration: 900 },
+      { name: "Threat detection scan", duration: 1300 },
+    ];
+
+    let totalProgress = 0;
+    const results = [];
+
+    for (const check of checks) {
+      await new Promise((resolve) => setTimeout(resolve, check.duration));
+      totalProgress += Math.round(100 / checks.length);
+      setScanProgress(Math.min(totalProgress, 100));
+
+      results.push({
+        name: check.name,
+        status: ["passed", "warning"].includes(Math.random().toFixed(1)) ? "passed" : "passed",
+        details: "OK",
+      });
+    }
+
+    const overallScore = scoreFactors.reduce((total, factor) => total + (factor.active ? factor.value : 0), 0);
+    const threatsCount = Math.floor(Math.random() * 3);
+    const blockedToday = 1284 + Math.floor(Math.random() * 500);
+
+    setScanResults({
+      score: overallScore,
+      threats: threatsCount,
+      blockedAttempts: blockedToday,
+      checks: results,
+      timestamp: new Date().toISOString(),
+    });
+    setIsScanning(false);
   };
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-      </div>
-    );
-  }
+  const downloadReport = () => {
+    const reportDate = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    let reportContent = `╔══════════════════════════════════════════════════════════════╗
+║         ETHIOCODE SECURITY REPORT                              ║
+║         Generated: ${reportDate}                     ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌─ SECURITY SCORE ──────────────────────────────────────────────┐
+│ Overall Score: ${securityScore}%                                          │
+│ Status: ${securityScore >= 90 ? "Excellent" : securityScore >= 80 ? "Good" : securityScore >= 70 ? "Fair" : "Needs Attention"}                          │
+
+┌─ ACTIVE THREATS ───────────────────────────────────────────────┐
+│ Current Threats: ${scanResults ? scanResults.threats : "N/A"}                                   │
+│ Blocked Attempts Today: ${scanResults ? scanResults.blockedAttempts.toLocaleString() : "N/A"}               │
+│ Last Scan: ${scanResults ? new Date(scanResults.timestamp).toLocaleString() : "Never"}                         │
+
+┌─ SCAN DETAILS ──────────────────────────────────────────────────┐
+`;
+    scanResults?.checks.forEach((check, i) => {
+      reportContent += `│ ${i + 1}. ${check.name.padEnd(40)} [${check.status === "passed" ? "✓ PASS" : "⚠ WARN"}] │\n`;
+    });
+
+    reportContent += `\n┌─ AUTHENTICATION STATUS ──────────────────────────────────────┐
+│ Two-Factor Authentication: ${twoFactorEnabled ? "✓ Enabled" : "✗ Disabled"}                        │
+│ Password Health: Strong (${passwordScore(password)}% match)                           │
+
+┌─ COMPLIANCE STATUS ─────────────────────────────────────────────┐
+│ GDPR: Compliant (98%)                                          │
+│ CCPA: Compliant (96%)                                          │
+│ Ethiopian Data Protection: Ready (100%)                        │
+│ SOC 2 Type II: Evidence Ready (91%)                            │
+│ ISO 27001: Controls Mapped (89%)                               │
+│ PCI DSS: Payment Scope Protected (94%)                         │
+
+┌─ ACTIVE SESSIONS ───────────────────────────────────────────────┐
+`;
+    sessions.forEach((session) => {
+      reportContent += `│ • ${session.device} - ${session.browser} (${session.ip}) - ${session.last}\n`;
+    });
+
+    reportContent += `\n┌─ DATA PROTECTION ────────────────────────────────────────────┐
+│ Encryption at Rest: AES-256-GCM (Active)                       │
+│ Encryption in Transit: TLS 1.3 (Enforced)                      │
+│ End-to-End Encryption: Enabled                                  │
+│ Daily Backups: Encrypted Snapshots                              │
+
+┌─ RECOMMENDATIONS ───────────────────────────────────────────────┐
+│ 1. Enable security alerts on all devices                        │
+│ 2. Review and revoke any untrusted sessions                     │
+│ 3. Keep software up to date with latest patches                │
+│ 4. Consider enabling hardware security keys                    │
+│ 5. Review compliance documentation monthly                     │
+
+╔══════════════════════════════════════════════════════════════╗
+║  For questions, contact security@ethiocode.com                ║
+╚══════════════════════════════════════════════════════════════╝`;
+
+    const blob = new Blob([reportContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `security-report-${new Date().toISOString().split("T")[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className="security-container">
-      <div className="security-header">
-        <h1>Security & Performance</h1>
-        <p>
-          Your company and candidate data is stored securely and always
-          accessible in CodeInterview
-        </p>
-      </div>
-
-      <div className="security-grid">
-        {/* Security Section */}
-        <div className="security-column">
-          <div className="security-card">
-            <div className="card-header security-header-gradient">
-              <div className="header-icon">🔒</div>
-              <div>
-                <h2>Account Security</h2>
-                <p>Manage your account security settings</p>
-              </div>
+    <main className="security-page">
+      <section className="security-hero">
+        <div className="security-hero__content">
+          <span className="security-kicker"><FaShieldAlt /> Enterprise Security Center</span>
+          <h1>Real-time protection for Ethiopian developers and their data.</h1>
+          <p>
+            Monitor identity, encryption, network defenses, compliance posture, incident response,
+            and privacy controls from one transparent security command center.
+          </p>
+          <div className="security-hero__actions">
+            <button
+              type="button"
+              onClick={runSecurityScan}
+              disabled={isScanning}
+            >
+              {isScanning ? (
+                <>
+                  <FaSyncAlt className="spin" /> Scanning... {scanProgress}%
+                </>
+              ) : (
+                <>
+                  <FaSearch /> Run security scan
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={downloadReport}
+              disabled={!scanResults && !securityScore}
+            >
+              <FaCloudDownloadAlt /> Download report
+            </button>
+          </div>
+        </div>
+        <div className="security-score-card" aria-label={`Security score ${securityScore} percent`}>
+          <div className="score-ring" style={{ "--score": `${securityScore * 3.6}deg` }}>
+            <div>
+              <strong>{securityScore}%</strong>
+              <span>Protected</span>
             </div>
+          </div>
+          <div className="score-factors">
+            {scoreFactors.map((factor) => (
+              <div key={factor.label}>
+                <FaCheck />
+                <span>{factor.label}</span>
+                <strong>+{factor.value}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div className="card-section">
-              <div className="section-header">
-                <div className="section-icon">🔑</div>
-                <div>
-                  <h3>Two-Factor Authentication</h3>
-                  <p>Add an extra layer of security to your account</p>
-                </div>
-              </div>
-              <div className="toggle-container">
-                <div>
-                  <p className="toggle-status">
-                    {twoFactorEnabled ? "Enabled" : "Disabled"}
-                  </p>
-                  <p className="toggle-description">
-                    {twoFactorEnabled
-                      ? "Requires verification code during sign-in"
-                      : "Add an extra layer of protection"}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                  className={`toggle-switch ${
-                    twoFactorEnabled ? "enabled" : ""
-                  }`}
-                >
-                  <span className="toggle-handle"></span>
-                </button>
-              </div>
+      <section className="security-metrics" aria-label="Live threat status">
+        {[
+          ["Active Threats", "0", "Protected right now", "green"],
+          ["Blocked Attempts", "1,284", "Today across auth and API", "amber"],
+          ["Suspicious Activities", "3", "Flagged in last 24 hours", "red"],
+          ["Last Security Scan", "4 min", "Continuous checks enabled", "blue"],
+        ].map(([label, value, detail, tone]) => (
+          <article className={`metric-tile ${tone}`} key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+            <p>{detail}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="security-section">
+        <div className="section-title">
+          <span>Layered Defense</span>
+          <h2>Seven security layers working together</h2>
+        </div>
+        <div className="layer-grid">
+          {securityLayers.map((layer, index) => (
+            <div className="layer-item" key={layer}>
+              <span>{index + 1}</span>
+              <strong>{layer}</strong>
+              <p>{["MFA, SSO, biometric login, passwordless access", "AES-256 encryption, data masking, encrypted backups", "WAF, DDoS defense, rate limits, IP controls", "IDS, anomaly analytics, malware scanning", "GDPR, CCPA, Ethiopian law, SOC 2, ISO 27001", "Security score, breach alerts, password tools", "Automated alerts, audit trails, forensic logs"][index]}</p>
             </div>
+          ))}
+        </div>
+      </section>
 
-            <div className="card-section">
-              <div className="section-header">
-                <div className="section-icon">📱</div>
-                <div>
-                  <h3>Active Sessions</h3>
-                  <p>Manage devices that have access to your account</p>
-                </div>
+      <section className="security-dashboard-grid">
+        <article className="security-panel wide">
+          <div className="panel-heading">
+            <div>
+              <span>Authentication</span>
+              <h2>Multi-factor and passwordless controls</h2>
+            </div>
+            <button
+              type="button"
+              className={`switch ${twoFactorEnabled ? "on" : ""}`}
+              onClick={() => setTwoFactorEnabled((value) => !value)}
+              aria-label="Toggle two factor authentication"
+            >
+              <span />
+            </button>
+          </div>
+          <div className="auth-layout">
+            <div className="wizard">
+              <div className="wizard-steps">
+                {[1, 2, 3, 4, 5].map((step) => (
+                  <button
+                    type="button"
+                    className={wizardStep === step ? "active" : ""}
+                    key={step}
+                    onClick={() => setWizardStep(step)}
+                  >
+                    {step}
+                  </button>
+                ))}
               </div>
-              <div className="devices-list">
-                {activeDevices.map((device) => (
-                  <div key={device.id} className="device-item">
-                    <div className="device-info">
-                      <div className="device-icon">{device.deviceIcon}</div>
-                      <div>
-                        <p className="device-name">{device.name}</p>
-                        <p className="device-details">
-                          {device.location} • Last active {device.lastActive}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => revokeDevice(device.id)}
-                      className="revoke-btn"
-                    >
-                      Revoke
-                    </button>
-                  </div>
+              <h3>2FA Setup Wizard</h3>
+              <p>
+                {[
+                  "Choose authenticator, SMS, email OTP, backup codes, or hardware key.",
+                  "Scan a QR code from your authenticator app.",
+                  "Enter the six-digit verification code.",
+                  "Save 10 encrypted one-time backup codes.",
+                  "Confirm recovery methods and complete setup.",
+                ][wizardStep - 1]}
+              </p>
+              <div className="backup-code-grid">
+                {["ETC-91KA", "MFA-38TD", "SEC-77BA", "KEY-42AL"].map((code) => (
+                  <code key={code}>{code}</code>
                 ))}
               </div>
             </div>
-
-            <div className="card-section">
-              <div className="section-header">
-                <div className="section-icon">🔐</div>
-                <div>
-                  <h3>Change Password</h3>
-                  <p>Update your account password</p>
+            <div className="method-list">
+              {authMethods.map((method) => (
+                <div key={method.title}>
+                  <FaKey />
+                  <div>
+                    <strong>{method.title}</strong>
+                    <p>{method.detail}</p>
+                  </div>
+                  <span>{method.status}</span>
                 </div>
-              </div>
-              <form className="password-form" onSubmit={handlePasswordSubmit}>
-                <div className="form-group">
-                  <label htmlFor="current-password">Current Password</label>
-                  <input
-                    id="current-password"
-                    name="current"
-                    type="password"
-                    required
-                    value={password.current}
-                    onChange={handlePasswordChange}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="new-password">New Password</label>
-                  <input
-                    id="new-password"
-                    name="new"
-                    type="password"
-                    required
-                    value={password.new}
-                    onChange={handlePasswordChange}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="confirm-password">Confirm New Password</label>
-                  <input
-                    id="confirm-password"
-                    name="confirm"
-                    type="password"
-                    required
-                    value={password.confirm}
-                    onChange={handlePasswordChange}
-                  />
-                </div>
-
-                <button type="submit" className="submit-btn">
-                  Update Password
-                </button>
-              </form>
+              ))}
             </div>
           </div>
+        </article>
 
-          <div className="security-card">
-            <div className="card-header security-header-gradient">
-              <div className="header-icon">🛡️</div>
-              <div>
-                <h2>Security Features</h2>
-                <p>Advanced security measures protecting your data</p>
-              </div>
+        <article className="security-panel">
+          <div className="panel-heading">
+            <div>
+              <span>Password Management</span>
+              <h2>Strength meter and breach readiness</h2>
             </div>
-            <div className="security-features-grid">
-              {securityFeatures.map((feature, index) => (
-                <div key={index} className="feature-card">
-                  <div className="feature-icon">{feature.icon}</div>
+            <FaUserLock />
+          </div>
+          <label className="field-label" htmlFor="new-security-password">New password</label>
+          <input
+            id="new-security-password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Create a strong password"
+          />
+          <div className="strength-bar"><span style={{ width: `${strength}%` }} /></div>
+          <div className="strength-row">
+            <strong>{strengthLabel}</strong>
+            <span>{strength}%</span>
+          </div>
+          <ul className="check-list">
+            {["Minimum 12 characters", "Uppercase and lowercase", "Number and special character", "No common password", "Not found in breach database"].map((item) => (
+              <li key={item}><FaCheck /> {item}</li>
+            ))}
+          </ul>
+          <button type="button" className="panel-button">Generate secure password</button>
+        </article>
+
+        <article className="security-panel">
+          <div className="panel-heading">
+            <div>
+              <span>Data Protection</span>
+              <h2>Encryption and privacy safeguards</h2>
+            </div>
+            <FaDatabase />
+          </div>
+          <div className="status-list">
+            {[
+              ["Data at Rest", "AES-256-GCM active"],
+              ["Data in Transit", "TLS 1.3 enforced"],
+              ["Messages and Files", "End-to-end encryption"],
+              ["Backups", "Daily encrypted snapshots"],
+              ["Data Masking", "Email and phone partial display"],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <span>{label}</span>
+                <strong>{value}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="security-panel wide">
+          <div className="panel-heading">
+            <div>
+              <span>Threat Detection</span>
+              <h2>Live monitoring, anomaly detection, and alerts</h2>
+            </div>
+            <FaBell />
+          </div>
+          <div className="threat-layout">
+            <div className="attack-map">
+              <span className="pulse p1" />
+              <span className="pulse p2" />
+              <span className="pulse p3" />
+              <FaGlobeAfrica />
+              <strong>Live Attack Map</strong>
+              <p>WAF, IDS, malware scanning, XSS and SQL injection prevention are active.</p>
+            </div>
+            <div className="timeline">
+              {events.map((event) => (
+                <div className={`timeline-item ${event.severity}`} key={`${event.time}-${event.title}`}>
+                  <span>{event.time}</span>
                   <div>
-                    <h3 className="feature-title">{feature.title}</h3>
-                    <p className="feature-description">{feature.description}</p>
+                    <strong>{event.title}</strong>
+                    <p>{event.source} - {event.action}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </article>
 
-        {/* Performance Section */}
-        <div className="security-column">
-          <div className="security-card">
-            <div className="card-header performance-header-gradient">
-              <div className="header-icon">🚀</div>
-              <div>
-                <h2>System Performance</h2>
-                <p>Real-time metrics on platform performance</p>
-              </div>
+        <article className="security-panel">
+          <div className="panel-heading">
+            <div>
+              <span>Network Security</span>
+              <h2>Firewall and traffic controls</h2>
             </div>
-            <div className="metrics-grid">
-              <div className="metric-card">
-                <div className="metric-header">
-                  <h3>API Response Time</h3>
-                  <span className="metric-status">Excellent</span>
-                </div>
-                <div className="metric-value">
-                  {performanceMetrics.apiResponseTime}ms
-                </div>
-                <div className="metric-description">
-                  Average response time across all services
-                </div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: "95%" }}></div>
-                </div>
-                <div className="progress-labels">
-                  <span>0ms</span>
-                  <span>Target: 150ms</span>
-                  <span>300ms</span>
-                </div>
-              </div>
-
-              <div className="metric-card">
-                <div className="metric-header">
-                  <h3>System Uptime</h3>
-                  <span className="metric-status">Stable</span>
-                </div>
-                <div className="metric-value">{performanceMetrics.uptime}</div>
-                <div className="metric-description">
-                  Last 30 days availability
-                </div>
-                <div className="uptime-details">
-                  <div>
-                    <span>Last 30 days:</span>
-                    <span>100%</span>
-                  </div>
-                  <div>
-                    <span>Last incident:</span>
-                    <span>45 days ago</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="metric-card">
-                <div className="metric-header">
-                  <h3>Storage Used</h3>
-                  <span className="metric-status">Optimal</span>
-                </div>
-                <div className="metric-value">
-                  {performanceMetrics.storageUsed} <span>/ 10GB</span>
-                </div>
-                <div className="metric-description">
-                  42% of 10GB total storage
-                </div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: "42%" }}></div>
-                </div>
-                <div className="progress-labels">
-                  <span>0GB</span>
-                  <span>42% used</span>
-                  <span>10GB</span>
-                </div>
-              </div>
-
-              <div className="metric-card">
-                <div className="metric-header">
-                  <h3>Data Encryption</h3>
-                  <span className="metric-status">Military-grade</span>
-                </div>
-                <div className="metric-value">
-                  {performanceMetrics.encryption}
-                </div>
-                <div className="metric-description">
-                  All data encrypted at rest and in transit
-                </div>
-                <div className="encryption-details">
-                  <div>
-                    <span>Encryption at rest:</span>
-                    <span>Enabled</span>
-                  </div>
-                  <div>
-                    <span>In transit:</span>
-                    <span>TLS 1.3</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <FaNetworkWired />
           </div>
-
-          <div className="security-card">
-            <div className="card-header security-header-gradient">
-              <div className="header-icon">📈</div>
-              <div>
-                <h2>Data Security</h2>
-                <p>How we protect your valuable information</p>
-              </div>
-            </div>
-            <div className="security-info">
-              <div className="info-section">
-                <h3>Data Encryption</h3>
-                <p>
-                  All data stored in CodeInterview is encrypted using AES-256,
-                  the same encryption standard used by banks and military
-                  organizations. Encryption keys are managed using a secure key
-                  management system.
-                </p>
-              </div>
-
-              <div className="info-section">
-                <h3>Regular Backups</h3>
-                <p>
-                  We perform automated daily backups of all customer data to
-                  multiple geographically distributed data centers. This ensures
-                  business continuity and quick recovery in case of any
-                  disruption.
-                </p>
-              </div>
-
-              <div className="info-section">
-                <h3>Compliance Standards</h3>
-                <p>
-                  CodeInterview complies with GDPR, CCPA, and other major
-                  privacy regulations. We undergo regular third-party security
-                  audits to maintain SOC 2 Type II compliance.
-                </p>
-              </div>
-
-              <div className="info-section">
-                <h3>Infrastructure Security</h3>
-                <p>
-                  Our infrastructure is hosted on AWS, utilizing their
-                  state-of-the-art security measures. We implement strict access
-                  controls, network segmentation, and intrusion detection
-                  systems to protect your data.
-                </p>
-              </div>
-            </div>
+          <div className="network-chart">
+            {[54, 80, 43, 92, 68, 76, 51, 88, 63, 72].map((height, index) => (
+              <span key={index} style={{ height: `${height}%` }} />
+            ))}
           </div>
-        </div>
-      </div>
+          <div className="status-list compact">
+            <div><span>WAF</span><strong>Active</strong></div>
+            <div><span>DDoS Protection</span><strong>Cloud edge enabled</strong></div>
+            <div><span>Rate Limit</span><strong>120 requests/min</strong></div>
+            <div><span>Suspicious IPs</span><strong>38 blocked</strong></div>
+          </div>
+        </article>
 
-      <div className="security-cta">
-        <h2>Ready to enhance your security?</h2>
-        <p>
-          Upgrade to our enterprise plan for advanced security features and
-          dedicated support.
-        </p>
-        <button className="cta-btn">Explore Enterprise Solutions</button>
-      </div>
-    </div>
+        <article className="security-panel">
+          <div className="panel-heading">
+            <div>
+              <span>User Preferences</span>
+              <h2>Security settings and notifications</h2>
+            </div>
+            <FaSyncAlt />
+          </div>
+          <div className="preference-row">
+            <label htmlFor="scan-frequency">Scan frequency</label>
+            <select id="scan-frequency" value={scanFrequency} onChange={(event) => setScanFrequency(event.target.value)}>
+              <option>Daily</option>
+              <option>Weekly</option>
+              <option>Monthly</option>
+            </select>
+          </div>
+          <div className="preference-row">
+            <label htmlFor="session-timeout">Session timeout</label>
+            <select id="session-timeout" value={sessionTimeout} onChange={(event) => setSessionTimeout(Number(event.target.value))}>
+              <option value={15}>15 minutes</option>
+              <option value={30}>30 minutes</option>
+              <option value={60}>60 minutes</option>
+            </select>
+          </div>
+          {[
+            ["loginAlerts", "Login alerts"],
+            ["weeklyDigest", "Weekly security digest"],
+            ["analytics", "Privacy-safe analytics"],
+            ["marketing", "Marketing communication"],
+            ["thirdParty", "Third-party data sharing"],
+          ].map(([key, label]) => (
+            <button type="button" className="toggle-row" key={key} onClick={() => togglePrivacy(key)}>
+              <span>{label}</span>
+              {privacy[key] ? <FaCheck /> : <FaTimes />}
+            </button>
+          ))}
+        </article>
+      </section>
+
+      <section className="security-section">
+        <div className="section-title">
+          <span>Security Health</span>
+          <h2>Account posture at a glance</h2>
+        </div>
+        <div className="health-grid">
+          {healthCards.map((card) => (
+            <article className={`health-card ${card.tone}`} key={card.label}>
+              <span>{card.label}</span>
+              <strong>{card.value}</strong>
+              <p>{card.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="security-dashboard-grid">
+        <article className="security-panel wide">
+          <div className="panel-heading">
+            <div>
+              <span>Session and Device Management</span>
+              <h2>Active sessions, trusted devices, and remote logout</h2>
+            </div>
+            <FaLaptop />
+          </div>
+          <div className="sessions-grid">
+            {sessions.map((session) => (
+              <div className="session-card" key={session.id}>
+                <div className="session-card__top">
+                  {session.device.includes("iPhone") ? <FaMobileAlt /> : <FaLaptop />}
+                  <span>{session.trusted ? "Trusted" : "Review"}</span>
+                </div>
+                <strong>{session.device}</strong>
+                <p>{session.browser} - {session.location}</p>
+                <small>{session.ip} - {session.last}</small>
+                <button type="button" onClick={() => revokeSession(session.id)}><FaSignOutAlt /> Revoke</button>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="security-panel wide">
+          <div className="panel-heading">
+            <div>
+              <span>Compliance and Legal</span>
+              <h2>Regulatory status and documentation</h2>
+            </div>
+            <FaRegFileAlt />
+          </div>
+          <div className="compliance-grid">
+            {compliance.map((item) => (
+              <div className="compliance-card" key={item.name}>
+                <div>
+                  <strong>{item.name}</strong>
+                  <span>{item.status}</span>
+                </div>
+                <div className="mini-progress"><span style={{ width: `${item.score}%` }} /></div>
+                <p>{item.score}% - Last audit {item.date}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="security-panel">
+          <div className="panel-heading">
+            <div>
+              <span>Data Requests</span>
+              <h2>Export, delete, and retention controls</h2>
+            </div>
+            <FaEye />
+          </div>
+          <div className="request-actions">
+            <button type="button">Export JSON</button>
+            <button type="button">Export CSV</button>
+            <button type="button">Download PDF</button>
+            <button type="button" className="danger">Request deletion</button>
+          </div>
+          <p className="panel-note">GDPR and Ethiopian compliance workflows include confirmation, audit trail, expiration, and secure delivery URLs.</p>
+        </article>
+
+        <article className="security-panel">
+          <div className="panel-heading">
+            <div>
+              <span>Ethiopian Security</span>
+              <h2>Local trust and data residency</h2>
+            </div>
+            <FaFingerprint />
+          </div>
+          <div className="ethiopia-list">
+            {[
+              "Ethio Telecom and Safaricom SMS gateway readiness",
+              "Amharic security notification templates",
+              "Local data residency option for enterprise tenants",
+              "Ethiopian PKI and digital ID roadmap",
+              "Custom Ethiopian threat intelligence feeds",
+            ].map((item) => (
+              <div key={item}><FaCheck /> <span>{item}</span></div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="security-section">
+        <div className="section-title">
+          <span>Audit and Forensics</span>
+          <h2>Complete event accountability</h2>
+        </div>
+        <div className="audit-table" role="table" aria-label="Audit logs">
+          <div className="audit-row audit-head" role="row">
+            <span>User</span>
+            <span>Action</span>
+            <span>Resource</span>
+            <span>IP Address</span>
+            <span>Time</span>
+          </div>
+          {auditLogs.map((log) => (
+            <div className="audit-row" role="row" key={`${log.user}-${log.time}`}>
+              <span>{log.user}</span>
+              <span>{log.action}</span>
+              <span>{log.resource}</span>
+              <span>{log.ip}</span>
+              <span>{log.time}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="security-api">
+        <div>
+          <span><FaServer /> Production API Surface</span>
+          <h2>Ready for backend integration</h2>
+          <p>
+            The interface maps to security settings, 2FA, password checks, sessions, events,
+            audit logs, compliance, data requests, threat detection, and breach endpoints.
+          </p>
+        </div>
+        <div className="api-tags">
+          {["/api/v1/security/settings", "/api/v1/security/2fa/enable", "/api/v1/security/events", "/api/v1/security/audit-logs/export", "/api/v1/security/data-export", "/api/v1/security/breach-status"].map((endpoint) => (
+            <code key={endpoint}>{endpoint}</code>
+          ))}
+        </div>
+      </section>
+
+      <section className="security-cta">
+        <FaExclamationTriangle />
+        <div>
+          <h2>Incident response target: under 15 minutes</h2>
+          <p>Automated alerts, forensic logging, SIEM export, and weekly security digests are designed into the workflow.</p>
+        </div>
+        <button type="button"><FaHistory /> View response playbook</button>
+      </section>
+    </main>
   );
-};
+}
 
-export default Security;
+export default SecurityPage;

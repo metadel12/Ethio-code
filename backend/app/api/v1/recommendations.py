@@ -31,7 +31,7 @@ async def get_course_recommendations(
     body: RecommendRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    user_id = str(current_user["_id"])
+    user_id = str(current_user["user_id"])
     results = await recommend_courses(user_id, limit=body.limit)
     return {
         "type": "courses",
@@ -47,7 +47,7 @@ async def get_challenge_recommendations(
     body: RecommendRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    user_id = str(current_user["_id"])
+    user_id = str(current_user["user_id"])
     results = await recommend_challenges(user_id, limit=body.limit)
     return {
         "type": "challenges",
@@ -63,7 +63,7 @@ async def get_job_recommendations(
     body: RecommendRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    user_id = str(current_user["_id"])
+    user_id = str(current_user["user_id"])
     results = await recommend_jobs(user_id, limit=body.limit)
     return {
         "type": "jobs",
@@ -79,7 +79,7 @@ async def get_template_recommendations(
     body: RecommendRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    user_id = str(current_user["_id"])
+    user_id = str(current_user["user_id"])
     results = await recommend_templates(user_id, limit=body.limit)
     return {
         "type": "templates",
@@ -95,7 +95,7 @@ async def get_mentor_recommendations(
     body: RecommendRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    user_id = str(current_user["_id"])
+    user_id = str(current_user["user_id"])
     results = await recommend_mentors(user_id, limit=body.limit)
     return {
         "type": "mentors",

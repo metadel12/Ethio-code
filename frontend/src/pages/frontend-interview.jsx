@@ -1,1241 +1,494 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
-  FaCode,
-  FaPalette,
-  FaMobile,
-  FaClock,
-  FaPlay,
-  FaStop,
-  FaRedo,
-  FaChartBar,
-  FaUser,
-  FaLock,
-  FaTimes,
-  FaCrown,
-  FaRocket,
-  FaStar,
-  FaVideo,
-  FaMicrophone,
-  FaPaperclip,
-  FaPaperPlane,
-  FaFileCode,
-  FaLaptopCode,
-  FaCheckCircle,
-  FaUsers,
-  FaBuilding,
-  FaProjectDiagram,
-} from "react-icons/fa";
-import "./front.css";
+  FiAward,
+  FiBookOpen,
+  FiCheckCircle,
+  FiClock,
+  FiCode,
+  FiCpu,
+  FiFeather,
+  FiGrid,
+  FiLayers,
+  FiMonitor,
+  FiSmartphone,
+  FiTarget,
+  FiTrendingUp,
+  FiX,
+} from "react-icons/fi";
+import ProgressBar from "../components/backend/ProgressBar";
 
-// Login Form Component
-const LoginForm = ({ onLogin, onClose }) => {
-  const [credentials, setCredentials] = useState({ email: "", password: "" });
-  const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+const storageKey = "ethiocode_frontend_interview_attempts";
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setCredentials((prev) => ({ ...prev, [name]: value }));
+const fallbackAnswers = {
+  javascript:
+    "Explain the JavaScript concept clearly, mention runtime behavior, edge cases, browser impact, and include a practical UI or API example.",
+  react:
+    "Connect the concept to component design, state updates, rendering behavior, hooks, performance, and maintainability tradeoffs.",
+  css:
+    "Describe the CSS rule or layout model, how it affects rendering, responsive behavior, browser support, and practical implementation details.",
+  accessibility:
+    "Explain semantic structure, keyboard support, focus management, labels, contrast, screen reader behavior, and how you would test it.",
+  performance:
+    "Cover measurement, bundle size, rendering cost, network behavior, caching, lazy loading, and user-perceived performance.",
+  system_design:
+    "Break the frontend system into components, state, routing, data fetching, caching, error states, accessibility, testing, and deployment.",
+};
+
+const questionBank = [
+  ["javascript", "Event loop and rendering", "Explain how the JavaScript event loop affects UI rendering.", "intermediate", ["event-loop", "rendering", "microtasks"]],
+  ["javascript", "Closures in UI code", "What is a closure, and where would you use it in a frontend app?", "beginner", ["closures", "scope", "callbacks"]],
+  ["javascript", "Debounce vs throttle", "When would you use debounce or throttle in a search or scroll feature?", "intermediate", ["debounce", "throttle", "events"]],
+  ["javascript", "Promises and async await", "Explain promises and async await, including error handling.", "beginner", ["promises", "async", "errors"]],
+  ["javascript", "Memory leaks", "How can JavaScript code cause memory leaks in a single page app?", "advanced", ["memory", "listeners", "cleanup"]],
+  ["javascript", "Module loading", "How do ES modules help organize frontend applications?", "beginner", ["modules", "imports", "bundling"]],
+  ["javascript", "Immutable updates", "Why are immutable updates useful for UI state?", "intermediate", ["immutability", "state", "rendering"]],
+  ["javascript", "Browser storage", "Compare localStorage, sessionStorage, cookies, and IndexedDB.", "intermediate", ["storage", "cookies", "indexeddb"]],
+  ["javascript", "Type coercion", "What JavaScript type coercion issues can create frontend bugs?", "beginner", ["types", "coercion", "bugs"]],
+  ["javascript", "Abort fetch requests", "How would you cancel an in-flight fetch when a component unmounts?", "advanced", ["fetch", "abortcontroller", "cleanup"]],
+
+  ["react", "React rendering model", "What causes a React component to re-render, and how do you control unnecessary renders?", "intermediate", ["rendering", "memo", "state"]],
+  ["react", "Hooks rules", "Why do React hooks have rules, and what bugs do those rules prevent?", "beginner", ["hooks", "rules", "state"]],
+  ["react", "useEffect cleanup", "When should useEffect return a cleanup function?", "intermediate", ["useeffect", "cleanup", "subscriptions"]],
+  ["react", "Controlled inputs", "What is a controlled input in React, and when is it useful?", "beginner", ["forms", "controlled", "state"]],
+  ["react", "State management choice", "When would you use local state, context, Zustand, or React Query?", "advanced", ["state", "context", "query"]],
+  ["react", "Keys in lists", "Why are stable keys important when rendering lists?", "beginner", ["keys", "lists", "reconciliation"]],
+  ["react", "Error boundaries", "What problem do React error boundaries solve?", "intermediate", ["errors", "boundaries", "fallbacks"]],
+  ["react", "Component composition", "How does composition help avoid overly complex React components?", "intermediate", ["composition", "props", "children"]],
+  ["react", "Suspense", "What does React Suspense help with?", "advanced", ["suspense", "loading", "async"]],
+  ["react", "Testing components", "How would you test a React form with validation and submit behavior?", "intermediate", ["testing", "forms", "validation"]],
+
+  ["css", "Box model", "Explain the CSS box model and how box-sizing changes layout calculations.", "beginner", ["box-model", "layout", "sizing"]],
+  ["css", "Flexbox vs grid", "When would you choose Flexbox over CSS Grid, and when would you choose Grid?", "intermediate", ["flexbox", "grid", "layout"]],
+  ["css", "Stacking context", "What creates a stacking context, and why can z-index fail?", "advanced", ["z-index", "stacking", "positioning"]],
+  ["css", "Responsive layout", "How would you build a responsive dashboard layout without a UI framework?", "intermediate", ["responsive", "grid", "breakpoints"]],
+  ["css", "CSS variables", "How do CSS custom properties help with theming?", "beginner", ["variables", "themes", "css"]],
+  ["css", "Specificity", "How do you debug a CSS specificity conflict?", "beginner", ["specificity", "cascade", "debugging"]],
+  ["css", "Container queries", "How are container queries different from media queries?", "advanced", ["container-queries", "responsive", "components"]],
+  ["css", "Animations", "How do you create smooth CSS animations without hurting performance?", "intermediate", ["animation", "transform", "performance"]],
+  ["css", "Responsive images", "How should a frontend app serve responsive images?", "intermediate", ["images", "srcset", "performance"]],
+  ["css", "Dark mode", "How would you implement dark mode across a design system?", "intermediate", ["dark-mode", "tokens", "themes"]],
+
+  ["accessibility", "Semantic HTML", "Why is semantic HTML important for accessibility and maintainability?", "beginner", ["semantic", "html", "screen-reader"]],
+  ["accessibility", "Keyboard navigation", "How would you test that a modal is keyboard accessible?", "intermediate", ["keyboard", "modal", "focus"]],
+  ["accessibility", "Focus management", "What should happen to focus when opening and closing a dialog?", "advanced", ["focus", "dialog", "aria"]],
+  ["accessibility", "Forms", "How do labels, errors, and hints improve accessible forms?", "beginner", ["forms", "labels", "errors"]],
+  ["accessibility", "ARIA usage", "When should you use ARIA, and when should you avoid it?", "intermediate", ["aria", "semantics", "roles"]],
+  ["accessibility", "Color contrast", "How would you validate color contrast in a UI?", "beginner", ["contrast", "color", "wcag"]],
+  ["accessibility", "Skip links", "Why are skip links useful on content-heavy pages?", "beginner", ["skip-links", "navigation", "keyboard"]],
+  ["accessibility", "Live regions", "When would you use an ARIA live region?", "advanced", ["live-region", "announcements", "async"]],
+  ["accessibility", "Accessible menus", "How would you build an accessible dropdown menu?", "advanced", ["menu", "keyboard", "aria"]],
+  ["accessibility", "Testing tools", "Which accessibility issues can automated tools find, and what must be tested manually?", "intermediate", ["testing", "axe", "manual"]],
+
+  ["performance", "Core Web Vitals", "What are Core Web Vitals, and how would you improve them?", "intermediate", ["web-vitals", "lcp", "cls"]],
+  ["performance", "Bundle splitting", "How does code splitting improve frontend performance?", "intermediate", ["bundles", "lazy-loading", "routing"]],
+  ["performance", "Large lists", "How would you render a list with ten thousand rows smoothly?", "advanced", ["virtualization", "lists", "rendering"]],
+  ["performance", "Image optimization", "What steps would you take to optimize image-heavy pages?", "beginner", ["images", "compression", "lazy-loading"]],
+  ["performance", "Memoization", "When does memoization help React performance, and when can it be noise?", "advanced", ["memo", "react", "profiling"]],
+  ["performance", "Caching API data", "How would you cache API responses in a frontend app?", "intermediate", ["cache", "api", "react-query"]],
+  ["performance", "Measure first", "Why should performance work start with measurement?", "beginner", ["measurement", "profiling", "metrics"]],
+  ["performance", "Hydration cost", "What can make hydration slow in an SSR React app?", "advanced", ["ssr", "hydration", "javascript"]],
+  ["performance", "Network waterfall", "How do you reduce a slow network waterfall?", "intermediate", ["network", "preload", "requests"]],
+  ["performance", "Main thread work", "How do long tasks affect interaction responsiveness?", "intermediate", ["main-thread", "long-tasks", "inp"]],
+
+  ["system_design", "Design a component library", "Design a frontend component library for a growing product team.", "advanced", ["design-system", "tokens", "components"]],
+  ["system_design", "Design a job search UI", "Design a frontend architecture for searchable job listings with filters and saved jobs.", "intermediate", ["search", "filters", "state"]],
+  ["system_design", "Design offline support", "How would you design offline support for a learning app?", "advanced", ["offline", "service-worker", "sync"]],
+  ["system_design", "Design auth flows", "Design login, refresh token, logout, and protected routes for a SPA.", "intermediate", ["auth", "routing", "security"]],
+  ["system_design", "Design a dashboard", "Design a dashboard with charts, tables, filters, loading states, and empty states.", "intermediate", ["dashboard", "charts", "ux"]],
+  ["system_design", "Design file uploads", "Design a frontend file upload experience with progress, validation, and retry.", "intermediate", ["uploads", "progress", "retry"]],
+  ["system_design", "Design multi-step forms", "Design a resilient multi-step application form.", "beginner", ["forms", "validation", "autosave"]],
+  ["system_design", "Design notifications", "Design toast, inbox, and realtime notifications in a web app.", "advanced", ["notifications", "websocket", "state"]],
+  ["system_design", "Design internationalization", "How would you add multilingual support to a React app?", "intermediate", ["i18n", "locale", "content"]],
+  ["system_design", "Design error handling", "Design frontend error handling for API failures and unexpected UI crashes.", "intermediate", ["errors", "fallbacks", "monitoring"]],
+].map(([category, title, question_text, difficulty, tags], index) => ({
+  _id: `frontend-${category}-${index + 1}`,
+  title,
+  category,
+  difficulty,
+  question_text,
+  answer_text: fallbackAnswers[category],
+  time_limit_seconds: difficulty === "advanced" ? 900 : difficulty === "intermediate" ? 720 : 480,
+  points: difficulty === "advanced" ? 30 : difficulty === "intermediate" ? 20 : 15,
+  success_rate: difficulty === "advanced" ? 0.45 : difficulty === "intermediate" ? 0.62 : 0.78,
+  total_attempts: 0,
+  tags,
+}));
+
+const categories = [
+  { id: "javascript", name: "JavaScript", icon: <FiCode />, color: "from-yellow-500 to-amber-600" },
+  { id: "react", name: "React", icon: <FiLayers />, color: "from-cyan-500 to-blue-600" },
+  { id: "css", name: "CSS Layout", icon: <FiGrid />, color: "from-pink-500 to-rose-600" },
+  { id: "accessibility", name: "Accessibility", icon: <FiFeather />, color: "from-emerald-500 to-teal-600" },
+  { id: "performance", name: "Performance", icon: <FiCpu />, color: "from-orange-500 to-red-600" },
+  { id: "system_design", name: "Frontend Design", icon: <FiMonitor />, color: "from-violet-500 to-indigo-600" },
+];
+
+const getStoredAttempts = () => {
+  try {
+    return JSON.parse(localStorage.getItem(storageKey) || "[]");
+  } catch {
+    return [];
+  }
+};
+
+const scoreAnswer = (question, answer) => {
+  const cleanAnswer = answer.toLowerCase();
+  const modelAnswer = (question.answer_text || fallbackAnswers[question.category] || "").toLowerCase();
+  const tags = Array.isArray(question.tags) ? question.tags : [];
+  const keywords = Array.from(
+    new Set([
+      ...tags,
+      ...modelAnswer
+        .replace(/[^a-z0-9\s-]/g, " ")
+        .split(/\s+/)
+        .filter((word) => word.length > 5)
+        .slice(0, 14),
+    ])
+  );
+  const matched = keywords.filter((keyword) => cleanAnswer.includes(keyword.toLowerCase()));
+  const wordCount = answer.trim().split(/\s+/).filter(Boolean).length;
+  const coverage = keywords.length ? matched.length / keywords.length : 0;
+  const detailScore = Math.min(wordCount / 90, 1);
+  const score = Math.round(coverage * 70 + detailScore * 30);
+
+  return {
+    attempt_id: `frontend-local-${Date.now()}`,
+    question_id: question._id,
+    category: question.category,
+    score: Math.max(10, Math.min(100, score)),
+    matched,
+    wordCount,
+    is_correct: score >= 70,
+    created_at: new Date().toISOString(),
   };
+};
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+const QuestionPracticeModal = ({ question, onSubmitted, onClose }) => {
+  const [answer, setAnswer] = useState("");
+  const [result, setResult] = useState(null);
+  const [showModelAnswer, setShowModelAnswer] = useState(false);
 
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+  const wordCount = answer.trim().split(/\s+/).filter(Boolean).length;
+  const modelAnswer = question.answer_text || fallbackAnswers[question.category];
 
-      // Simple validation
-      if (!credentials.email || !credentials.password) {
-        throw new Error("Please fill in all fields");
-      }
-
-      if (!/\S+@\S+\.\S+/.test(credentials.email)) {
-        throw new Error("Please enter a valid email");
-      }
-
-      // Successful login
-      onLogin(credentials.email, rememberMe);
-    } catch (err) {
-      setError(err.message || "Login failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+  const submitAnswer = () => {
+    if (!answer.trim()) return;
+    const nextResult = scoreAnswer(question, answer);
+    const stored = getStoredAttempts();
+    const attempts = [
+      { ...nextResult, title: question.title },
+      ...stored.filter((attempt) => attempt.question_id !== question._id),
+    ];
+    localStorage.setItem(storageKey, JSON.stringify(attempts));
+    setResult(nextResult);
+    setShowModelAnswer(true);
+    onSubmitted?.(nextResult);
   };
 
   return (
-    <div className="login-modal">
-      <div className="login-container">
-        <button className="close-btn" onClick={onClose}>
-          <FaTimes />
-        </button>
-
-        <div className="login-header">
-          <h2>Unlock Frontend Interview Prep</h2>
-          <p>Sign in to access premium interview resources</p>
-        </div>
-
-        {error && <div className="error-message">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="email">
-              <FaUser className="input-icon" /> Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={credentials.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              required
-            />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 shadow-2xl">
+        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-slate-700 bg-slate-900 px-6 py-4">
+          <div>
+            <p className="text-sm capitalize text-cyan-300">
+              {question.category.replace("_", " ")} / {question.difficulty}
+            </p>
+            <h2 className="mt-1 text-2xl font-bold text-white">{question.title}</h2>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="password">
-              <FaLock className="input-icon" /> Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={credentials.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-
-          <div className="form-options">
-            <label className="remember-me">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              Remember me
-            </label>
-            <a href="#" className="forgot-password">
-              Forgot password?
-            </a>
-          </div>
-
-          <button type="submit" className="login-btn" disabled={isLoading}>
-            {isLoading ? <div className="spinner"></div> : "Sign In"}
+          <button
+            onClick={onClose}
+            className="rounded-full bg-slate-800 p-2 text-slate-300 transition hover:bg-slate-700"
+            aria-label="Close frontend practice modal"
+          >
+            <FiX className="h-5 w-5" />
           </button>
-        </form>
-
-        <div className="signup-link">
-          Don't have an account? <a href="#">Sign up</a>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Pricing Plans Component
-const PricingPlans = ({ onSelectPlan, onClose }) => {
-  const plans = [
-    {
-      id: "free",
-      name: "Starter",
-      price: "$0",
-      period: "forever",
-      features: [
-        "Basic JavaScript questions",
-        "Limited AI feedback (3/month)",
-        "Community support",
-      ],
-      icon: <FaStar />,
-      recommended: false,
-    },
-    {
-      id: "pro",
-      name: "Professional",
-      price: "$12",
-      period: "per month",
-      features: [
-        "All frontend topics (JS, React, CSS)",
-        "Unlimited AI feedback",
-        "Performance analytics",
-        "Priority support",
-        "Interview simulations",
-      ],
-      icon: <FaCrown />,
-      recommended: true,
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      price: "$89",
-      period: "per month",
-      features: [
-        "Everything in Professional",
-        "Team collaboration",
-        "Custom question sets",
-        "Dedicated account manager",
-        "Advanced analytics",
-      ],
-      icon: <FaRocket />,
-      recommended: false,
-    },
-  ];
-
-  const [selectedPlan, setSelectedPlan] = useState(null);
-
-  const handleSelect = (planId) => {
-    setSelectedPlan(planId);
-    setTimeout(() => {
-      onSelectPlan(planId);
-    }, 800);
-  };
-
-  return (
-    <div className="pricing-modal">
-      <div className="pricing-container">
-        <button className="close-btn" onClick={onClose}>
-          <FaTimes />
-        </button>
-
-        <div className="pricing-header">
-          <h2>Choose Your Plan</h2>
-          <p>Select the perfect plan to ace your frontend interviews</p>
         </div>
 
-        <div className="plans-grid">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`plan-card ${plan.recommended ? "recommended" : ""} ${
-                selectedPlan === plan.id ? "selected" : ""
-              }`}
-              onClick={() => handleSelect(plan.id)}
-            >
-              {plan.recommended && (
-                <div className="recommended-badge">MOST POPULAR</div>
-              )}
-
-              <div className="plan-icon">{plan.icon}</div>
-              <h3>{plan.name}</h3>
-              <div className="plan-price">
-                <span>{plan.price}</span>
-                <small>/{plan.period}</small>
-              </div>
-
-              <ul className="plan-features">
-                {plan.features.map((feature, index) => (
-                  <li key={index}>{feature}</li>
-                ))}
-              </ul>
-
-              <button className="select-btn">
-                {selectedPlan === plan.id ? "Selected ✓" : "Select Plan"}
-              </button>
+        <div className="space-y-5 px-6 py-5">
+          <div className="rounded-lg bg-slate-800/70 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-200">
+              <FiBookOpen className="h-4 w-4" />
+              Question
             </div>
-          ))}
-        </div>
-
-        <div className="pricing-footer">
-          <p>All plans include 14-day money-back guarantee</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Video Chat Component
-const VideoChat = ({ company, onEndCall }) => {
-  const [isVideoOn, setIsVideoOn] = useState(true);
-  const [isAudioOn, setIsAudioOn] = useState(true);
-  const [chatMessages, setChatMessages] = useState([
-    {
-      sender: "company",
-      text: "Hello! Welcome to the technical interview.",
-      time: "10:00 AM",
-    },
-    {
-      sender: "company",
-      text: "We'll discuss your project submission.",
-      time: "10:01 AM",
-    },
-  ]);
-  const [newMessage, setNewMessage] = useState("");
-
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      const newMsg = {
-        sender: "user",
-        text: newMessage,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setChatMessages([...chatMessages, newMsg]);
-      setNewMessage("");
-    }
-  };
-
-  return (
-    <div className="video-chat-container">
-      <div className="video-header">
-        <h3>Interview with {company}</h3>
-        <button className="end-call-btn" onClick={onEndCall}>
-          End Call
-        </button>
-      </div>
-
-      <div className="video-content">
-        <div className="video-streams">
-          <div className={`video-feed ${!isVideoOn ? "video-off" : ""}`}>
-            {isVideoOn ? (
-              <div className="video-placeholder">
-                <div className="user-avatar">Y</div>
-                <p>Your Camera</p>
-              </div>
-            ) : (
-              <div className="video-off-placeholder">
-                <div className="avatar-off">Y</div>
-                <p>Camera Off</p>
-              </div>
-            )}
-            <div className="video-controls">
-              <button
-                className={`control-btn ${isVideoOn ? "active" : ""}`}
-                onClick={() => setIsVideoOn(!isVideoOn)}
-              >
-                <FaVideo /> {isVideoOn ? "On" : "Off"}
-              </button>
-              <button
-                className={`control-btn ${isAudioOn ? "active" : ""}`}
-                onClick={() => setIsAudioOn(!isAudioOn)}
-              >
-                <FaMicrophone /> {isAudioOn ? "On" : "Off"}
-              </button>
-            </div>
+            <p className="text-slate-200">{question.question_text}</p>
           </div>
 
-          <div className="video-feed">
-            <div className="video-placeholder">
-              <div className="user-avatar">C</div>
-              <p>{company} Interviewer</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="chat-container">
-          <div className="chat-messages">
-            {chatMessages.map((msg, index) => (
-              <div
-                key={index}
-                className={`message ${
-                  msg.sender === "user" ? "user-message" : "company-message"
-                }`}
-              >
-                <div className="message-content">
-                  <span className="message-text">{msg.text}</span>
-                  <span className="message-time">{msg.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="chat-input">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-200">Your answer</span>
+            <textarea
+              value={answer}
+              onChange={(event) => {
+                setAnswer(event.target.value);
+                setResult(null);
+              }}
+              rows={8}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400"
+              placeholder="Explain your approach like a real interview: behavior, tradeoffs, examples, edge cases, and how you would test it."
             />
-            <button className="send-btn" onClick={handleSendMessage}>
-              <FaPaperPlane />
+          </label>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-slate-400">{wordCount} words</div>
+            <button
+              onClick={submitAnswer}
+              disabled={!answer.trim()}
+              className="rounded-lg bg-emerald-600 px-5 py-2.5 font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Submit Answer
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
-// Project Submission Component
-const ProjectSubmission = ({ project, onSubmit, onCancel }) => {
-  const [submission, setSubmission] = useState({
-    repoUrl: "",
-    liveUrl: "",
-    notes: "",
-    files: [],
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setSubmission((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    setSubmission((prev) => ({
-      ...prev,
-      files: [...prev.files, ...files],
-    }));
-  };
-
-  const removeFile = (index) => {
-    setSubmission((prev) => ({
-      ...prev,
-      files: prev.files.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleSubmit = () => {
-    onSubmit(submission);
-  };
-
-  return (
-    <div className="project-submission-container">
-      <h3>Submit Project: {project.title}</h3>
-      <p className="project-description">{project.description}</p>
-
-      <div className="submission-form">
-        <div className="form-group">
-          <label>GitHub Repository URL</label>
-          <input
-            type="url"
-            name="repoUrl"
-            value={submission.repoUrl}
-            onChange={handleChange}
-            placeholder="https://github.com/yourusername/project"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Live Demo URL (if applicable)</label>
-          <input
-            type="url"
-            name="liveUrl"
-            value={submission.liveUrl}
-            onChange={handleChange}
-            placeholder="https://your-project-demo.com"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Notes for the reviewer</label>
-          <textarea
-            name="notes"
-            value={submission.notes}
-            onChange={handleChange}
-            placeholder="Describe your solution, challenges faced, and any additional information..."
-            rows="4"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Upload Files (Screenshots, Documentation, etc.)</label>
-          <div className="file-upload">
-            <label className="upload-btn">
-              <input
-                type="file"
-                multiple
-                onChange={handleFileUpload}
-                style={{ display: "none" }}
-              />
-              <FaPaperclip /> Add Files
-            </label>
-          </div>
-
-          {submission.files.length > 0 && (
-            <div className="file-list">
-              {submission.files.map((file, index) => (
-                <div key={index} className="file-item">
-                  <FaFileCode />
-                  <span>{file.name}</span>
-                  <button
-                    onClick={() => removeFile(index)}
-                    className="remove-file"
-                  >
-                    <FaTimes />
-                  </button>
+          {result && (
+            <div className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-4">
+              <div className="mb-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-lg font-bold text-emerald-200">
+                  <FiAward className="h-5 w-5" />
+                  Result: {result.score}/100
                 </div>
-              ))}
+                <span className="rounded-full bg-slate-900 px-3 py-1 text-sm text-slate-300">
+                  {result.wordCount} words
+                </span>
+              </div>
+              <div className="space-y-2 text-sm text-slate-200">
+                <p className="flex gap-2">
+                  <FiCheckCircle className="mt-0.5 h-4 w-4 flex-none text-emerald-300" />
+                  {result.score >= 70
+                    ? "Strong answer. You covered several important frontend ideas."
+                    : "Keep going. Add concrete UI examples, browser behavior, tradeoffs, and testing details."}
+                </p>
+                <p>
+                  Matched concepts: {result.matched.length ? result.matched.slice(0, 8).join(", ") : "not enough yet"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {showModelAnswer && (
+            <div className="rounded-lg bg-slate-800/70 p-4">
+              <h3 className="mb-2 font-semibold text-white">Model answer direction</h3>
+              <p className="text-sm leading-6 text-slate-300">{modelAnswer}</p>
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+};
 
-        <div className="form-actions">
-          <button className="cancel-btn" onClick={onCancel}>
-            Cancel
-          </button>
-          <button
-            className="submit-btn"
-            onClick={handleSubmit}
-            disabled={!submission.repoUrl}
-          >
-            Submit Project
-          </button>
+const CategoryCard = ({ category, selected, count, onClick }) => (
+  <motion.button
+    onClick={onClick}
+    whileHover={{ scale: 1.03 }}
+    whileTap={{ scale: 0.98 }}
+    className={`rounded-lg p-4 text-left transition ${
+      selected
+        ? `bg-gradient-to-r ${category.color} text-white shadow-lg`
+        : "bg-slate-800/70 text-slate-300 hover:bg-slate-700"
+    }`}
+  >
+    <div className="mb-2 text-2xl">{category.icon}</div>
+    <div className="font-semibold">{category.name}</div>
+    <div className="text-sm opacity-80">{count} questions</div>
+  </motion.button>
+);
+
+const QuestionCard = ({ question, index, onSelect }) => {
+  const difficultyColor = {
+    beginner: "bg-emerald-400/10 text-emerald-300",
+    intermediate: "bg-yellow-400/10 text-yellow-300",
+    advanced: "bg-orange-400/10 text-orange-300",
+  }[question.difficulty] || "bg-slate-400/10 text-slate-300";
+
+  return (
+    <motion.article
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(question)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(question);
+        }
+      }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03 }}
+      className="group cursor-pointer rounded-lg bg-slate-800/60 p-6 transition hover:bg-slate-800"
+    >
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold text-white transition group-hover:text-cyan-300">{question.title}</h3>
+          <p className="text-sm capitalize text-slate-400">{question.category.replace("_", " ")}</p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-xs font-medium ${difficultyColor}`}>{question.difficulty}</span>
+      </div>
+      <p className="mb-4 text-sm leading-6 text-slate-300">{question.question_text}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1">
+            <FiClock className="h-4 w-4" />
+            {Math.max(1, Math.floor(question.time_limit_seconds / 60))}m
+          </span>
+          <span className="flex items-center gap-1">
+            <FiTarget className="h-4 w-4" />
+            {question.points} pts
+          </span>
+          <span className="flex items-center gap-1">
+            <FiTrendingUp className="h-4 w-4" />
+            {Math.round(question.success_rate * 100)}%
+          </span>
         </div>
       </div>
-    </div>
+      <div className="mt-4 flex flex-wrap gap-1">
+        {question.tags.slice(0, 3).map((tag) => (
+          <span key={tag} className="rounded bg-slate-700 px-2 py-1 text-xs text-slate-300">
+            {tag}
+          </span>
+        ))}
+      </div>
+    </motion.article>
   );
 };
 
-// Project Dashboard Component
-const ProjectDashboard = ({ projects, onStartProject }) => {
-  return (
-    <div className="project-dashboard">
-      <div className="dashboard-header">
-        <h2>Your Projects</h2>
-        <button className="new-project-btn" onClick={() => onStartProject()}>
-          <FaProjectDiagram /> Start New Project
-        </button>
-      </div>
-
-      <div className="projects-grid">
-        {projects.length === 0 ? (
-          <div className="empty-projects">
-            <FaLaptopCode className="icon" />
-            <h3>No Active Projects</h3>
-            <p>Start a project to demonstrate your skills to companies</p>
-            <button className="cta-btn" onClick={() => onStartProject()}>
-              Browse Projects
-            </button>
-          </div>
-        ) : (
-          projects.map((project, index) => (
-            <div key={index} className={`project-card ${project.status}`}>
-              <div className="project-header">
-                <div className="company-info">
-                  <FaBuilding />
-                  <span>{project.company}</span>
-                </div>
-                <div className={`status-badge ${project.status}`}>
-                  {project.status.charAt(0).toUpperCase() +
-                    project.status.slice(1)}
-                </div>
-              </div>
-
-              <h3 className="project-title">{project.title}</h3>
-              <p className="project-description">
-                {project.description.substring(0, 100)}...
-              </p>
-
-              <div className="project-meta">
-                <div className="meta-item">
-                  <FaClock />
-                  <span>Due: {project.deadline}</span>
-                </div>
-                <div className="meta-item">
-                  <FaUsers />
-                  <span>{project.applicants} applicants</span>
-                </div>
-              </div>
-
-              <div className="project-actions">
-                {project.status === "assigned" && (
-                  <button
-                    className="action-btn primary"
-                    onClick={() => onStartProject(project)}
-                  >
-                    Continue Project
-                  </button>
-                )}
-                {project.status === "submitted" && (
-                  <button className="action-btn">
-                    <FaCheckCircle /> Submitted
-                  </button>
-                )}
-                {project.status === "review" && (
-                  <button className="action-btn">Under Review</button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Main Component
 const FrontendInterviewPage = () => {
-  // Question categories
-  const categories = [
-    { id: "javascript", name: "JavaScript", icon: <FaCode /> },
-    { id: "react", name: "React", icon: <FaCode /> },
-    { id: "css", name: "CSS", icon: <FaPalette /> },
-    { id: "responsive", name: "Responsive Design", icon: <FaMobile /> },
-  ];
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedDifficulty, setSelectedDifficulty] = useState("all");
+  const [attempts, setAttempts] = useState([]);
+  const [activeQuestion, setActiveQuestion] = useState(null);
 
-  // Difficulty levels
-  const difficulties = [
-    { id: "easy", name: "Easy" },
-    { id: "medium", name: "Medium" },
-    { id: "hard", name: "Hard" },
-  ];
-
-  // State
-  const [questions, setQuestions] = useState([]);
-  const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [userAnswer, setUserAnswer] = useState("");
-  const [feedback, setFeedback] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [timer, setTimer] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [category, setCategory] = useState("javascript");
-  const [difficulty, setDifficulty] = useState("medium");
-  const [performance, setPerformance] = useState([]);
-
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [showPricing, setShowPricing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [userEmail, setUserEmail] = useState("");
-
-  // Project state
-  const [projects, setProjects] = useState([]);
-  const [activeProject, setActiveProject] = useState(null);
-  const [showProjectSubmission, setShowProjectSubmission] = useState(false);
-  const [activeInterview, setActiveInterview] = useState(null);
-  const [projectToStart, setProjectToStart] = useState(null);
-  const [showProjectDashboard, setShowProjectDashboard] = useState(true);
-  const [showVideoChat, setShowVideoChat] = useState(false);
-
-  const timerRef = useRef(null);
-
-  // Sample project bank
-  const projectBank = [
-    {
-      id: "ecomm",
-      company: "ShopNow Inc.",
-      title: "E-commerce Product Page",
-      description:
-        "Create a responsive e-commerce product page with image gallery, product details, and add-to-cart functionality. Use React and CSS.",
-      deadline: "2023-12-15",
-      applicants: 24,
-      status: "available",
-    },
-    {
-      id: "dashboard",
-      company: "AnalyticsPro",
-      title: "Data Visualization Dashboard",
-      description:
-        "Build an interactive dashboard that displays sales data using charts and graphs. Implement filtering and date range selection.",
-      deadline: "2023-12-20",
-      applicants: 18,
-      status: "available",
-    },
-    {
-      id: "social",
-      company: "ConnectSocial",
-      title: "Social Media Post Component",
-      description:
-        "Develop a reusable social media post component with like, comment, and share functionality. Should support images and videos.",
-      deadline: "2023-12-10",
-      applicants: 32,
-      status: "available",
-    },
-  ];
-
-  // Load questions
   useEffect(() => {
-    if (!isAuthenticated || !selectedPlan) return;
+    setAttempts(getStoredAttempts());
+  }, []);
 
-    const loadQuestions = async () => {
-      // Simulated API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
+  const categoryCounts = useMemo(
+    () =>
+      questionBank.reduce((counts, question) => {
+        counts[question.category] = (counts[question.category] || 0) + 1;
+        return counts;
+      }, {}),
+    []
+  );
 
-      // Sample questions database
-      const questionBank = {
-        javascript: [
-          "Explain the event delegation in JavaScript",
-          "What is the difference between let, const, and var?",
-          "How does the 'this' keyword work in JavaScript?",
-          "Explain closures and provide a practical use case",
-          "What are promises and how do they work?",
-        ],
-        react: [
-          "Explain the virtual DOM in React",
-          "What are React hooks and why were they introduced?",
-          "How does React handle state management?",
-          "Explain the component lifecycle in React",
-          "What are higher-order components (HOC) in React?",
-        ],
-        css: [
-          "Explain the CSS box model",
-          "What's the difference between display: none and visibility: hidden?",
-          "How does CSS Flexbox work?",
-          "Explain CSS Grid layout",
-          "What are CSS variables and how do you use them?",
-        ],
-        responsive: [
-          "How would you implement a responsive design without using any framework?",
-          "Explain the difference between adaptive and responsive design",
-          "What are CSS media queries and how do you use them?",
-          "How do you handle responsive images?",
-          "Explain mobile-first design approach",
-        ],
-      };
+  const visibleQuestions = useMemo(
+    () =>
+      questionBank.filter(
+        (question) =>
+          (selectedCategory === "all" || question.category === selectedCategory) &&
+          (selectedDifficulty === "all" || question.difficulty === selectedDifficulty)
+      ),
+    [selectedCategory, selectedDifficulty]
+  );
 
-      setQuestions(questionBank[category] || []);
-    };
+  const answered = attempts.length;
+  const totalScore = attempts.reduce((sum, attempt) => sum + Number(attempt.score || 0), 0);
+  const averageScore = answered ? Math.round(totalScore / answered) : 0;
+  const correctAnswers = attempts.filter((attempt) => attempt.score >= 70).length;
 
-    loadQuestions();
-  }, [category, isAuthenticated, selectedPlan]);
-
-  // Timer effect
-  useEffect(() => {
-    if (isTimerRunning) {
-      timerRef.current = setInterval(() => {
-        setTimer((prev) => prev + 1);
-      }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [isTimerRunning]);
-
-  const startQuestion = () => {
-    if (!isAuthenticated) {
-      setShowLogin(true);
-      return;
-    }
-
-    if (!selectedPlan) {
-      setShowPricing(true);
-      return;
-    }
-
-    if (questions.length > 0) {
-      const randomIndex = Math.floor(Math.random() * questions.length);
-      setCurrentQuestion(questions[randomIndex]);
-      setUserAnswer("");
-      setFeedback("");
-      setTimer(0);
-      setIsTimerRunning(true);
-      setIsRecording(false);
-    }
-  };
-
-  const submitAnswer = () => {
-    setIsTimerRunning(false);
-
-    // Simulated AI feedback
-    const feedbacks = [
-      "Great explanation! You covered all the key points comprehensively.",
-      "Good response, but you could provide more specific examples.",
-      "Consider expanding on the practical applications of this concept.",
-      "Your answer demonstrates a solid understanding, but watch your time management.",
-      "Excellent technical depth. Try to structure your answer more clearly next time.",
-    ];
-
-    const randomFeedback =
-      feedbacks[Math.floor(Math.random() * feedbacks.length)];
-    setFeedback(randomFeedback);
-
-    // Save performance
-    setPerformance((prev) => [
-      ...prev,
-      {
-        question: currentQuestion,
-        time: timer,
-        feedback: randomFeedback,
-        date: new Date().toLocaleString(),
-      },
-    ]);
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-  // Handle login
-  const handleLogin = (email, remember) => {
-    setIsAuthenticated(true);
-    setUserEmail(email);
-    setShowLogin(false);
-
-    // Show pricing after login
-    setShowPricing(true);
-
-    if (remember) {
-      localStorage.setItem(
-        "frontend_user",
-        JSON.stringify({ email, plan: null })
-      );
-    }
-  };
-
-  // Handle plan selection
-  const handlePlanSelect = (planId) => {
-    setSelectedPlan(planId);
-    setShowPricing(false);
-
-    // Update local storage
-    const userData = JSON.parse(localStorage.getItem("frontend_user") || "{}");
-    localStorage.setItem(
-      "frontend_user",
-      JSON.stringify({
-        ...userData,
-        plan: planId,
-      })
-    );
-  };
-
-  // Handle logout
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserEmail("");
-    setSelectedPlan(null);
-    localStorage.removeItem("frontend_user");
-  };
-
-  // Start a project
-  const startProject = (project = null) => {
-    if (project) {
-      setProjectToStart(project);
-    } else {
-      // Select a random project if none specified
-      const randomProject =
-        projectBank[Math.floor(Math.random() * projectBank.length)];
-      setProjectToStart({ ...randomProject, status: "assigned" });
-    }
-    setShowProjectDashboard(false);
-  };
-
-  // Submit project
-  const submitProject = (submission) => {
-    setProjects((prev) => [
-      ...prev,
-      {
-        ...projectToStart,
-        status: "submitted",
-        submission,
-        submittedAt: new Date().toISOString(),
-      },
-    ]);
-    setShowProjectSubmission(false);
-    setProjectToStart(null);
-    setShowProjectDashboard(true);
-  };
-
-  // Start interview
-  const startInterview = (project) => {
-    setActiveInterview({
-      company: project.company,
-      project: project,
-    });
-    setShowVideoChat(true);
-  };
-
-  // End interview
-  const endInterview = () => {
-    setShowVideoChat(false);
-    setActiveInterview(null);
+  const handleSubmitted = () => {
+    setAttempts(getStoredAttempts());
   };
 
   return (
-    <div className="frontend-interview-container">
-      {showLogin && (
-        <LoginForm onLogin={handleLogin} onClose={() => setShowLogin(false)} />
-      )}
-
-      {showPricing && (
-        <PricingPlans
-          onSelectPlan={handlePlanSelect}
-          onClose={() => setShowPricing(false)}
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+      {activeQuestion && (
+        <QuestionPracticeModal
+          question={activeQuestion}
+          onSubmitted={handleSubmitted}
+          onClose={() => setActiveQuestion(null)}
         />
       )}
 
-      <div className="header-section">
-        <div className="header-content">
-          <h1>Frontend Engineering Interview Prep</h1>
-          <p>
-            Practice your frontend interview skills with real-world questions
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-8 text-center">
+          <div className="mb-3 flex justify-center">
+            <span className="rounded-full bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-200">
+              JavaScript, React, CSS, Accessibility, Performance
+            </span>
+          </div>
+          <h1 className="bg-gradient-to-r from-cyan-300 to-emerald-300 bg-clip-text text-4xl font-bold text-transparent md:text-5xl">
+            Frontend Interview Preparation
+          </h1>
+          <p className="mt-2 text-slate-400">
+            Practice real frontend interview questions with instant scoring and saved local progress.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="header-actions">
-          {isAuthenticated ? (
-            <div className="user-info">
-              <div className="user-avatar">
-                {userEmail.charAt(0).toUpperCase()}
-              </div>
-              <span className="user-email">{userEmail}</span>
-              <span className="user-plan">
-                {selectedPlan || "No plan selected"}
-              </span>
-              <button className="logout-btn" onClick={handleLogout}>
-                Logout
+        <section className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="rounded-lg bg-slate-800/60 p-4 text-center">
+            <div className="text-2xl font-bold text-cyan-300">{answered}</div>
+            <div className="text-sm text-slate-400">Questions Attempted</div>
+          </div>
+          <div className="rounded-lg bg-slate-800/60 p-4 text-center">
+            <div className="text-2xl font-bold text-emerald-300">{averageScore}%</div>
+            <div className="text-sm text-slate-400">Average Score</div>
+          </div>
+          <div className="rounded-lg bg-slate-800/60 p-4 text-center">
+            <div className="text-2xl font-bold text-orange-300">{correctAnswers}</div>
+            <div className="text-sm text-slate-400">Strong Answers</div>
+          </div>
+          <div className="rounded-lg bg-slate-800/60 p-4 text-center">
+            <div className="text-2xl font-bold text-yellow-300">{questionBank.length}</div>
+            <div className="text-sm text-slate-400">Question Bank</div>
+          </div>
+        </section>
+
+        <section className="mb-8 rounded-lg bg-slate-800/40 p-6">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-medium text-white">Overall Progress</span>
+            <span className="text-cyan-300">
+              {answered}/{questionBank.length}
+            </span>
+          </div>
+          <ProgressBar value={answered} max={questionBank.length} />
+        </section>
+
+        <section className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+          <CategoryCard
+            category={{ id: "all", name: "All Topics", icon: <FiSmartphone />, color: "from-slate-500 to-slate-700" }}
+            selected={selectedCategory === "all"}
+            count={questionBank.length}
+            onClick={() => setSelectedCategory("all")}
+          />
+          {categories.map((category) => (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              selected={selectedCategory === category.id}
+              count={categoryCounts[category.id] || 0}
+              onClick={() => setSelectedCategory(category.id)}
+            />
+          ))}
+        </section>
+
+        <section className="mb-8 flex flex-col justify-between gap-4 rounded-lg bg-slate-800/40 p-4 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="font-semibold text-white">Practice Questions</h2>
+            <p className="text-sm text-slate-400">{visibleQuestions.length} questions match your filters</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {["all", "beginner", "intermediate", "advanced"].map((difficulty) => (
+              <button
+                key={difficulty}
+                onClick={() => setSelectedDifficulty(difficulty)}
+                className={`rounded-lg px-4 py-2 text-sm font-medium capitalize transition ${
+                  selectedDifficulty === difficulty
+                    ? "bg-cyan-500 text-white"
+                    : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                }`}
+              >
+                {difficulty}
               </button>
-            </div>
-          ) : (
-            <button
-              className="start-free-btn"
-              onClick={() => setShowLogin(true)}
-            >
-              Start Free Trial
-            </button>
-          )}
-        </div>
-      </div>
-
-      {!isAuthenticated ? (
-        <div className="unauthorized-access">
-          <div className="access-content">
-            <div className="access-icon">
-              <FaCode />
-            </div>
-            <h2>Master Frontend Interviews</h2>
-            <p>
-              Sign in to access our comprehensive frontend interview preparation
-              platform with AI-powered feedback and real-world scenarios
-            </p>
-            <button
-              className="start-free-btn"
-              onClick={() => setShowLogin(true)}
-            >
-              Start Free Trial
-            </button>
-            <div className="feature-list">
-              <div className="feature">
-                <div className="feature-badge">✓</div>
-                <span>JavaScript & React Questions</span>
-              </div>
-              <div className="feature">
-                <div className="feature-badge">✓</div>
-                <span>CSS & Responsive Design Challenges</span>
-              </div>
-              <div className="feature">
-                <div className="feature-badge">✓</div>
-                <span>AI-Powered Feedback</span>
-              </div>
-              <div className="feature">
-                <div className="feature-badge">✓</div>
-                <span>Performance Analytics</span>
-              </div>
-              <div className="feature">
-                <div className="feature-badge">✓</div>
-                <span>Company Projects & Interviews</span>
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
-      ) : !selectedPlan ? (
-        <div className="pricing-prompt">
-          <div className="pricing-content">
-            <FaCrown className="pricing-icon" />
-            <h2>Upgrade to Unlock All Features</h2>
-            <p>
-              Choose a plan to access the full frontend interview preparation
-              platform with advanced resources and AI feedback
-            </p>
-            <button
-              className="view-plans-btn"
-              onClick={() => setShowPricing(true)}
-            >
-              View Pricing Plans
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="main-navigation">
-            <button
-              className={`nav-btn ${showProjectDashboard ? "active" : ""}`}
-              onClick={() => {
-                setShowProjectDashboard(true);
-                setProjectToStart(null);
-              }}
-            >
-              <FaLaptopCode /> Projects
-            </button>
-            <button
-              className={`nav-btn ${
-                !showProjectDashboard && !projectToStart && !showVideoChat
-                  ? "active"
-                  : ""
-              }`}
-              onClick={() => {
-                setShowProjectDashboard(false);
-                setProjectToStart(null);
-                setShowVideoChat(false);
-              }}
-            >
-              <FaCode /> Practice
-            </button>
-          </div>
+        </section>
 
-          {showProjectDashboard ? (
-            <ProjectDashboard
-              projects={projects}
-              onStartProject={startProject}
-            />
-          ) : showVideoChat ? (
-            <VideoChat
-              company={activeInterview.company}
-              onEndCall={endInterview}
-            />
-          ) : showProjectSubmission ? (
-            <ProjectSubmission
-              project={projectToStart}
-              onSubmit={submitProject}
-              onCancel={() => {
-                setShowProjectSubmission(false);
-                setShowProjectDashboard(true);
-              }}
-            />
-          ) : projectToStart ? (
-            <div className="project-workbench">
-              <div className="project-header">
-                <h2>{projectToStart.title}</h2>
-                <div className="company-info">
-                  <FaBuilding />
-                  <span>{projectToStart.company}</span>
-                </div>
-              </div>
-
-              <div className="project-details">
-                <div className="detail-section">
-                  <h3>Project Description</h3>
-                  <p>{projectToStart.description}</p>
-                </div>
-
-                <div className="detail-section">
-                  <h3>Requirements</h3>
-                  <ul>
-                    <li>Build a responsive e-commerce product page</li>
-                    <li>Implement image gallery with thumbnail navigation</li>
-                    <li>
-                      Include product details: title, description, price,
-                      variants
-                    </li>
-                    <li>Add-to-cart functionality</li>
-                    <li>Mobile-first design approach</li>
-                  </ul>
-                </div>
-
-                <div className="detail-section">
-                  <h3>Technical Stack</h3>
-                  <div className="tech-stack">
-                    <span>React</span>
-                    <span>CSS/SASS</span>
-                    <span>JavaScript ES6+</span>
-                    <span>Responsive Design</span>
-                  </div>
-                </div>
-
-                <div className="detail-section">
-                  <h3>Deadline</h3>
-                  <p>{projectToStart.deadline} (5 days remaining)</p>
-                </div>
-              </div>
-
-              <div className="project-actions">
-                <button
-                  className="action-btn secondary"
-                  onClick={() => {
-                    setProjectToStart(null);
-                    setShowProjectDashboard(true);
-                  }}
-                >
-                  Back to Projects
-                </button>
-                <button
-                  className="action-btn primary"
-                  onClick={() => setShowProjectSubmission(true)}
-                >
-                  Submit Project
-                </button>
-                <button
-                  className="action-btn"
-                  onClick={() => startInterview(projectToStart)}
-                >
-                  <FaVideo /> Request Interview
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="controls-section">
-                <div className="category-selector">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      className={`category-btn ${
-                        category === cat.id ? "active" : ""
-                      }`}
-                      onClick={() => setCategory(cat.id)}
-                    >
-                      <span className="category-icon">{cat.icon}</span>
-                      {cat.name}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="difficulty-selector">
-                  <label>Difficulty:</label>
-                  {difficulties.map((diff) => (
-                    <button
-                      key={diff.id}
-                      className={`difficulty-btn ${
-                        difficulty === diff.id ? "active" : ""
-                      }`}
-                      onClick={() => setDifficulty(diff.id)}
-                    >
-                      {diff.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="interview-container">
-                <div className="question-section">
-                  {!currentQuestion ? (
-                    <div className="start-screen">
-                      <div className="stats-card">
-                        <h3>Your Stats</h3>
-                        <div className="stats-grid">
-                          <div className="stat-item">
-                            <FaClock />
-                            <span>Avg. Response Time: 2:45</span>
-                          </div>
-                          <div className="stat-item">
-                            <FaChartBar />
-                            <span>Completion Rate: 78%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="instructions">
-                        <h3>How to Practice:</h3>
-                        <ol>
-                          <li>Select a category and difficulty level</li>
-                          <li>Click "Start Question" to begin</li>
-                          <li>Think aloud as you would in a real interview</li>
-                          <li>Submit your answer to get AI feedback</li>
-                          <li>
-                            Review your performance in the history section
-                          </li>
-                        </ol>
-                      </div>
-
-                      <button className="start-btn" onClick={startQuestion}>
-                        <FaPlay /> Start Practice Question
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="active-question">
-                      <div className="question-header">
-                        <h2>Interview Question</h2>
-                        <div className="timer">
-                          <FaClock /> {formatTime(timer)}
-                        </div>
-                      </div>
-
-                      <div className="question-card">
-                        <p>{currentQuestion}</p>
-                      </div>
-
-                      <div className="answer-section">
-                        <textarea
-                          value={userAnswer}
-                          onChange={(e) => setUserAnswer(e.target.value)}
-                          placeholder="Type your answer here..."
-                          rows="6"
-                        />
-
-                        <div className="recording-controls">
-                          <button
-                            className={`record-btn ${
-                              isRecording ? "recording" : ""
-                            }`}
-                            onClick={() => setIsRecording(!isRecording)}
-                          >
-                            {isRecording ? <FaStop /> : <FaPlay />}
-                            {isRecording
-                              ? " Stop Recording"
-                              : " Start Recording"}
-                          </button>
-
-                          <button
-                            className="submit-btn"
-                            onClick={submitAnswer}
-                            disabled={!userAnswer.trim()}
-                          >
-                            Submit Answer
-                          </button>
-                        </div>
-                      </div>
-
-                      {feedback && (
-                        <div className="feedback-section">
-                          <h3>AI Feedback:</h3>
-                          <p>{feedback}</p>
-
-                          <div className="feedback-actions">
-                            <button
-                              className="new-question-btn"
-                              onClick={startQuestion}
-                            >
-                              <FaRedo /> New Question
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="history-section">
-                  <h2>Your Performance History</h2>
-
-                  {performance.length === 0 ? (
-                    <div className="empty-history">
-                      <p>
-                        Complete your first question to see your performance
-                        history
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="history-list">
-                      {performance.map((item, index) => (
-                        <div key={index} className="history-item">
-                          <div className="history-question">
-                            <h3>{item.question}</h3>
-                            <div className="history-meta">
-                              <span>{item.date}</span>
-                              <span className="time-badge">
-                                {formatTime(item.time)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="history-feedback">
-                            <p>{item.feedback}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </>
-      )}
+        <section className="grid gap-4 lg:grid-cols-2">
+          {visibleQuestions.map((question, index) => (
+            <QuestionCard key={question._id} question={question} index={index} onSelect={setActiveQuestion} />
+          ))}
+        </section>
+      </main>
     </div>
   );
 };

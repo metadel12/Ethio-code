@@ -63,3 +63,19 @@ def get_current_user(
     if payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
     return payload
+
+
+def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+):
+    """Get current user if authenticated, otherwise return None"""
+    if credentials is None:
+        return None
+    
+    try:
+        payload = decode_access_token(credentials.credentials)
+        if payload.get("type") != "access":
+            return None
+        return payload
+    except:
+        return None

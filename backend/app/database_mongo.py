@@ -8,7 +8,7 @@ from app.config import settings
 
 # MongoDB client
 client = motor.motor_asyncio.AsyncIOMotorClient(settings.MONGODB_URL)
-db = client[settings.MONGODB_DB_NAME]
+db = client[settings.MONGODB_DB_NAME]  # noqa: used directly by routers
 
 # Collections
 jobs_collection = db.jobs
@@ -50,6 +50,15 @@ notifications_collection = db.notifications
 # Enterprise
 organizations_collection = db.organizations
 teams_collection = db.teams
+
+# Proctoring
+proctoring_tests_collection = db.proctoring_tests
+proctoring_sessions_collection = db.proctoring_sessions
+proctoring_flags_collection = db.proctoring_flags
+
+# Device Testing
+device_test_results_collection = db.device_test_results
+user_device_settings_collection = db.user_device_settings
 
 # Projects Marketplace
 projects_collection = db.projects
@@ -270,5 +279,23 @@ async def init_mongodb():
     await project_saves_collection.create_index([("project_id", 1), ("user_id", 1)], unique=True)
     await project_comments_collection.create_index("project_id")
     await project_views_collection.create_index("project_id")
+
+    # Proctoring indexes
+    await proctoring_tests_collection.create_index("company_id")
+    await proctoring_tests_collection.create_index("status")
+    await proctoring_tests_collection.create_index([("created_at", DESCENDING)])
+    await proctoring_sessions_collection.create_index("test_id")
+    await proctoring_sessions_collection.create_index("user_id")
+    await proctoring_sessions_collection.create_index("status")
+    await proctoring_sessions_collection.create_index([("started_at", DESCENDING)])
+    await proctoring_flags_collection.create_index("session_id")
+    await proctoring_flags_collection.create_index("type")
+    await proctoring_flags_collection.create_index("severity")
+    await proctoring_flags_collection.create_index([("timestamp", DESCENDING)])
+
+    # Device Testing indexes
+    await device_test_results_collection.create_index([("user_id", 1), ("test_date", -1)])
+    await device_test_results_collection.create_index("user_id")
+    await user_device_settings_collection.create_index("user_id", unique=True)
 
     print(f"[MongoDB] Connected successfully to '{settings.MONGODB_DB_NAME}' at {settings.MONGODB_URL}")

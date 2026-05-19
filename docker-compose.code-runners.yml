@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  python-runner:
+    build: ./docker/python
+    image: ethiocode-python-runner:latest
+    mem_limit: 512m
+    cpus: 1
+    read_only: true
+    tmpfs:
+      - /app:rw,noexec,nosuid,size=64M
+    network_mode: none
+    restart: "no"
+
+  node-runner:
+    build: ./docker/node
+    image: ethiocode-node-runner:latest
+    mem_limit: 512m
+    cpus: 1
+    read_only: true
+    tmpfs:
+      - /app:rw,noexec,nosuid,size=64M
+    network_mode: none
+    restart: "no"
+
+  java-runner:
+    build: ./docker/java
+    image: ethiocode-java-runner:latest
+    mem_limit: 1g
+    cpus: 1
+    read_only: true
+    tmpfs:
+      - /app:rw,noexec,nosuid,size=128M
+    network_mode: none
+    restart: "no"
+
+  cpp-runner:
+    build: ./docker/cpp
+    image: ethiocode-cpp-runner:latest
+    mem_limit: 512m
+    cpus: 1
+    read_only: true
+    tmpfs:
+      - /app:rw,noexec,nosuid,size=64M
+    network_mode: none
+    restart: "no"

@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../context/ThemeContext";
 
+// ==================== PRODUCT ITEMS ====================
 const productItems = [
   { path: "/templates",           title: "Templates",           icon: "🗂", desc: "Ready-made code templates" },
   { path: "/code-editor",         title: "Code Editor",         icon: "💻", desc: "In-browser IDE with 50+ languages" },
@@ -19,10 +20,11 @@ const productItems = [
   { path: "/languages",           title: "50+ Languages",       icon: "🌍", desc: "Code in any language" },
   { path: "/audiovideo",          title: "Audio & Video",       icon: "🎧", desc: "Live A/V interview tools" },
   { path: "/interview-questions", title: "Interview Questions", icon: "❓", desc: "Curated question bank" },
-  { path: "/screentest",          title: "Screen Test",         icon: "🖥", desc: "Screen-share assessments" },
+  { path: "/device-test",         title: "Device Test",         icon: "🖥️", desc: "Test camera, mic, network" },  // ✅ FIXED
   { path: "/amharic-translator",  title: "Amharic Translator",  icon: "🇪🇹", desc: "Amharic ↔ English tool" },
 ];
 
+// ==================== NAVIGATION ITEMS ====================
 const navItems = [
   { path: "/jobs",         title: "Jobs" },
   { path: "/projects",     title: "Projects" },
@@ -44,15 +46,18 @@ export default function Navbar() {
   const isAuthPage = ["/login", "/signup"].includes(location.pathname);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
-  // scroll
+  // scroll effect
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  // close on route change
-  useEffect(() => { setMobileOpen(false); setDropdown(false); }, [location.pathname]);
+  // close menu on route change
+  useEffect(() => { 
+    setMobileOpen(false); 
+    setDropdown(false); 
+  }, [location.pathname]);
 
   // track desktop vs mobile
   useEffect(() => {
@@ -74,6 +79,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", fn);
   }, []);
 
+  // Navbar background based on scroll and theme
   const navBg = scrolled
     ? isDark
       ? "bg-slate-900/95 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.4)] border-b border-slate-700/60"
@@ -82,6 +88,7 @@ export default function Navbar() {
       ? "bg-slate-900/70 backdrop-blur-md"
       : "bg-white/70 backdrop-blur-md";
 
+  // Link styles
   const linkCls = ({ isActive }) =>
     `px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
       isActive
@@ -107,7 +114,7 @@ export default function Navbar() {
               </span>
             </NavLink>
 
-            {/* ── Desktop nav (hidden below lg) ── */}
+            {/* ── Desktop navigation (hidden below lg) ── */}
             <div className="hidden lg:flex items-center gap-1">
 
               {/* Product mega dropdown */}
@@ -139,7 +146,7 @@ export default function Navbar() {
                     <div className={`flex items-center justify-between mb-4 pb-3 border-b ${isDark ? "border-slate-700/40" : "border-slate-100"}`}>
                       <div>
                         <p className={`text-xs font-black uppercase tracking-widest ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>All Features</p>
-                        <p className={`text-xs mt-0.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>15 powerful tools for Ethiopian developers</p>
+                        <p className={`text-xs mt-0.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>16 powerful tools for Ethiopian developers</p>
                       </div>
                       <NavLink to="/dashboard" className="text-xs font-bold text-emerald-400 hover:text-emerald-300">View all →</NavLink>
                     </div>
@@ -214,7 +221,7 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* ── Burger button — phone/tablet ONLY ── */}
+            {/* ── Mobile menu button (phone/tablet ONLY) ── */}
             {!isDesktop && (
               <button
                 type="button"
@@ -233,7 +240,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* ── Fullscreen mobile menu — phone/tablet ONLY ── */}
+        {/* ── Mobile fullscreen menu (phone/tablet ONLY) ── */}
         {mobileOpen && !isDesktop && (
           <div className={`lg:hidden fixed inset-0 top-16 z-40 flex flex-col overflow-y-auto ${isDark ? "bg-slate-900" : "bg-white"}`}>
             <div className="flex-1 px-6 py-6 flex flex-col gap-1">

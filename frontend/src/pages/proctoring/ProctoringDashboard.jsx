@@ -1,1 +1,1 @@
-export { default } from "../proctoring for screening test";
+export { default } from "./ProctorDashboard";

@@ -8,13 +8,16 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.middleware import SecurityMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
+from app.database import db
 
 from app.api.v1 import (
     admin,
-    analytics,
     auth,
-    blogs,
+    backend_interview,
     code,
+    code_execution,
+    ai_feedback,
+    device_test,
     enterprise,
     gdpr,
     home,
@@ -23,13 +26,18 @@ from app.api.v1 import (
     notifications,
     payments,
     platform,
+    pricing,
     proctoring,
     search,
     templates,
+    translator,
     users,
     video,
+    video_chat,
     dashboard,
+    contact,
 )
+from app.api.v1 import blogs
 from app.api.v1 import jobs
 from app.api.v1 import projects as projects_api
 from app.api.v1 import recommendations
@@ -38,16 +46,14 @@ from app.api.v1 import insights
 from app.api.v1 import nlp
 from app.api.v1.templates import creator_router
 from app.websockets.ws_router import router as ws_router
-from app.database_mongo import init_mongodb
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_mongodb()
-    try:
-        yield
-    except asyncio.CancelledError:
-        pass
+    await db.connect()
+    print("EthioCode Backend Interview API Started")
+    yield
+    await db.disconnect()
 
 
 app = FastAPI(title="EthioCode API", version="1.0.0", lifespan=lifespan)
@@ -77,22 +83,30 @@ app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboar
 app.include_router(learning.router, prefix="/api/v1/learning", tags=["learning"])
 app.include_router(enterprise.router, prefix="/api/v1/enterprise", tags=["enterprise"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
-app.include_router(blogs.router, prefix="/api/v1/blogs", tags=["blogs"])
+app.include_router(blogs.router, prefix="/api/v1", tags=["blogs"])
 app.include_router(interviews.router, prefix="/api/v1/interviews", tags=["interviews"])
+app.include_router(backend_interview.router, prefix="/api/v1", tags=["Backend Interview"])
+app.include_router(code_execution.router, prefix="/api/v1", tags=["Code Execution"])
+app.include_router(device_test.router, prefix="/api/v1", tags=["Device Test"])
+app.include_router(ai_feedback.router, prefix="/api/v1", tags=["AI Feedback"])
 app.include_router(code.router, prefix="/api/v1/code", tags=["code"])
+app.include_router(translator.router, prefix="/api/v1", tags=["translator"])
 app.include_router(video.router, prefix="/api/v1/video", tags=["video"])
+app.include_router(video_chat.router, prefix="/api/v1", tags=["Video Chat"])
 app.include_router(proctoring.router, prefix="/api/v1/proctoring", tags=["proctoring"])
 app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
 app.include_router(creator_router, prefix="/api/v1/creator", tags=["creator"])
 app.include_router(payments.router, prefix="/api/v1/payments", tags=["payments"])
+app.include_router(pricing.router, prefix="/api/v1", tags=["pricing"])
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])
-app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
+# app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(recommendations.router, prefix="/api/v1", tags=["AI Recommendations"])
 app.include_router(predictions.router, prefix="/api/v1", tags=["Predictive Analytics"])
 app.include_router(insights.router, prefix="/api/v1", tags=["Intelligent Insights"])
 app.include_router(nlp.router, prefix="/api/v1", tags=["NLP"])
 app.include_router(search.router, prefix="/api/v1", tags=["search"])
 app.include_router(platform.router, prefix="/api/v1", tags=["platform"])
+app.include_router(contact.router, prefix="/api/v1", tags=["contact"])
 app.include_router(gdpr.router, prefix="/api/v1", tags=["gdpr"])
 app.include_router(ws_router, tags=["WebSocket"])
 

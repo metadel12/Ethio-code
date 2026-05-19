@@ -1,416 +1,461 @@
-// src/pages/AmharicTranslatorPage.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FaExchangeAlt,
-  FaVolumeUp,
-  FaCopy,
-  FaHistory,
-  FaStar,
-  FaTrash,
-} from "react-icons/fa";
-import "./amharics.css";
+    FiArrowRight, FiVolume2, FiMic, FiCopy, FiBookmark, FiTrash2,
+    FiClock, FiStar, FiBarChart2, FiRefreshCw, FiGlobe,
+    FiMessageSquare, FiCheck, FiChevronRight, FiAward, FiTrendingUp
+} from 'react-icons/fi';
+import './amharics-translator.css';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API = API_BASE.endsWith('/api/v1') ? API_BASE : `${API_BASE}/api/v1`;
+
 const AmharicTranslatorPage = () => {
-  const [inputText, setInputText] = useState("");
-  const [translatedText, setTranslatedText] = useState("");
-  const [translationHistory, setTranslationHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [direction, setDirection] = useState("en-am"); // 'en-am' or 'am-en'
-  const [favorites, setFavorites] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
-  const [activeTab, setActiveTab] = useState("translate");
-  const [voice, setVoice] = useState(null);
+    const [sourceText, setSourceText] = useState('');
+    const [targetText, setTargetText] = useState('');
+    const [sourceLang, setSourceLang] = useState('am');
+    const [targetLang, setTargetLang] = useState('en');
+    const [isTranslating, setIsTranslating] = useState(false);
+    const [history, setHistory] = useState([]);
+    const [favorites, setFavorites] = useState([]);
+    const [vocabulary, setVocabulary] = useState([]);
+    const [progress, setProgress] = useState(null);
+    const [activeTab, setActiveTab] = useState('translate');
+    const [commonPhrases, setCommonPhrases] = useState({});
 
-  // Sample dictionary (in real app, use API)
-  const dictionary = {
-    hello: "ሰላም",
-    world: "ዓለም",
-    "good morning": "እንደምን አደርክ",
-    "thank you": "አመሰግናለሁ",
-    "how are you": "እንዴት ነህ",
-    welcome: "እንኳን ደህና መጣህ",
-    love: "ፍቅር",
-    ethiopia: "ኢትዮጵያ",
-    coffee: "ቡና",
-    food: "ምግብ",
-    water: "ውሃ",
-    friend: "ጓደኛ",
-    family: "ቤተሰብ",
-    work: "ስራ",
-    beautiful: "ውብ",
-    computer: "ኮምፒውተር",
-    programming: "ፕሮግራሚንግ",
-    developer: "ደቨሎፐር",
-    internet: "ኢንተርኔት",
-    technology: "ቴክኖሎጂ",
-    "እንደምን አደርክ": "good morning",
-    አመሰግናለሁ: "thank you",
-    "እንዴት ነህ": "how are you",
-    "እንኳን ደህና መጣህ": "welcome",
-    ፍቅር: "love",
-    ኢትዮጵያ: "ethiopia",
-    ቡና: "coffee",
-    ምግብ: "food",
-    ውሃ: "water",
-    ጓደኛ: "friend",
-    ቤተሰብ: "family",
-    ስራ: "work",
-    ውብ: "beautiful",
-    ኮምፒውተር: "computer",
-    ፕሮግራሚንግ: "programming",
-    ደቨሎፐር: "developer",
-    ኢንተርኔት: "internet",
-    ቴክኖሎጂ: "technology",
-  };
+    useEffect(() => {
+        loadData();
+    }, []);
 
-  // Load history and favorites from localStorage
-  useEffect(() => {
-    const savedHistory = localStorage.getItem("translationHistory");
-    if (savedHistory) {
-      setTranslationHistory(JSON.parse(savedHistory));
-    }
+    const loadData = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
 
-    const savedFavorites = localStorage.getItem("favoriteTranslations");
-    if (savedFavorites) {
-      setFavorites(JSON.parse(savedFavorites));
-    }
+        try {
+            const [historyRes, favoritesRes, vocabRes, progressRes, phrasesRes] = await Promise.all([
+                axios.get(`${API}/translator/history`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`${API}/translator/favorites`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`${API}/translator/vocabulary`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`${API}/translator/learning/progress`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`${API}/translator/common-phrases`)
+            ]);
 
-    // Load voices
-    const loadVoices = () => {
-      const voices = speechSynthesis.getVoices();
-      const amharicVoice = voices.find((v) => v.lang === "am-ET");
-      if (amharicVoice) {
-        setVoice(amharicVoice);
-      }
+            setHistory(historyRes.data.history || []);
+            setFavorites(favoritesRes.data.favorites || []);
+            setVocabulary(vocabRes.data.vocabulary || []);
+            setProgress(progressRes.data);
+            setCommonPhrases(phrasesRes.data.phrases || {});
+        } catch (error) {
+            console.error('Error loading data:', error);
+        }
     };
 
-    // Chrome loads voices asynchronously
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = loadVoices;
-    }
+    const translateText = async () => {
+        if (!sourceText.trim()) return;
 
-    loadVoices();
-  }, []);
+        setIsTranslating(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(
+                `${API}/translator/translate`,
+                {
+                    text: sourceText,
+                    source_lang: sourceLang,
+                    target_lang: targetLang
+                },
+                { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+            );
 
-  // Save history and favorites to localStorage
-  useEffect(() => {
-    localStorage.setItem(
-      "translationHistory",
-      JSON.stringify(translationHistory)
-    );
-  }, [translationHistory]);
-
-  useEffect(() => {
-    localStorage.setItem("favoriteTranslations", JSON.stringify(favorites));
-  }, [favorites]);
-
-  const translateText = async () => {
-    if (!inputText.trim()) {
-      setError("Please enter text to translate");
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
-
-    try {
-      // Simulate API call with delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const words = inputText.toLowerCase().split(" ");
-      let translated = "";
-
-      if (direction === "en-am") {
-        translated = words.map((word) => dictionary[word] || word).join(" ");
-      } else {
-        // For Amharic to English, we need to handle phrases
-        let remainingText = inputText;
-        let result = [];
-
-        // Try to match phrases first
-        const phrases = Object.keys(dictionary).filter((key) => key.length > 1);
-        phrases.sort((a, b) => b.length - a.length); // Longest first
-
-        for (const phrase of phrases) {
-          if (remainingText.includes(phrase)) {
-            result.push(dictionary[phrase]);
-            remainingText = remainingText.replace(phrase, "");
-          }
+            setTargetText(response.data.translated_text);
+            await loadData();
+        } catch (error) {
+            console.error('Translation error:', error);
+            setTargetText('Translation failed. Please try again.');
+        } finally {
+            setIsTranslating(false);
         }
+    };
 
-        // Handle remaining words
-        const remainingWords = remainingText.split(" ").filter((w) => w.trim());
-        result = [
-          ...result,
-          ...remainingWords.map((word) => dictionary[word] || word),
-        ];
+    const swapLanguages = () => {
+        setSourceLang(targetLang);
+        setTargetLang(sourceLang);
+        setSourceText(targetText);
+        setTargetText(sourceText);
+    };
 
-        translated = result.join(" ");
-      }
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(targetText);
+        alert('📋 Copied!');
+    };
 
-      setTranslatedText(translated);
+    const saveToFavorites = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(
+                `${API}/translator/favorite-phrase`,
+                {
+                    phrase_amharic: sourceLang === 'am' ? sourceText : targetText,
+                    phrase_english: sourceLang === 'en' ? sourceText : targetText
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            alert('⭐ Added to favorites!');
+            loadData();
+        } catch (error) {
+            console.error('Error saving favorite:', error);
+        }
+    };
 
-      // Add to history
-      const newEntry = {
-        id: Date.now(),
-        input: inputText,
-        output: translated,
-        direction,
-        timestamp: new Date().toLocaleString(),
-        favorite: false,
-      };
+    const addToVocabulary = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(
+                `${API}/translator/save-vocabulary`,
+                {
+                    word_amharic: sourceLang === 'am' ? sourceText : targetText,
+                    word_english: sourceLang === 'en' ? sourceText : targetText,
+                    example_sentence: sourceText
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            alert('📚 Added to vocabulary!');
+            loadData();
+        } catch (error) {
+            console.error('Error adding to vocabulary:', error);
+        }
+    };
 
-      setTranslationHistory((prev) => [newEntry, ...prev.slice(0, 49)]); // Keep last 50
-    } catch (err) {
-      setError("Translation failed. Please try again.");
-      console.error("Translation error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const deleteHistoryItem = async (id) => {
+        try {
+            const token = localStorage.getItem('token');
+            await axios.delete(`${API}/translator/history/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            loadData();
+        } catch (error) {
+            console.error('Error deleting history:', error);
+        }
+    };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(translatedText);
-  };
+    const loadPhrase = (amharic, english) => {
+        setSourceText(amharic);
+        setTargetText(english);
+        setSourceLang('am');
+        setTargetLang('en');
+    };
 
-  const handleSpeak = () => {
-    if (!translatedText) return;
-
-    const utterance = new SpeechSynthesisUtterance(translatedText);
-    utterance.lang = direction === "en-am" ? "am-ET" : "en-US";
-
-    if (voice && direction === "en-am") {
-      utterance.voice = voice;
-    }
-
-    speechSynthesis.speak(utterance);
-  };
-
-  const toggleFavorite = (id) => {
-    const updatedHistory = translationHistory.map((item) =>
-      item.id === id ? { ...item, favorite: !item.favorite } : item
-    );
-
-    setTranslationHistory(updatedHistory);
-
-    const item = translationHistory.find((item) => item.id === id);
-    if (item.favorite) {
-      setFavorites(favorites.filter((fav) => fav.id !== id));
-    } else {
-      setFavorites([...favorites, { ...item, favorite: true }]);
-    }
-  };
-
-  const clearHistory = () => {
-    setTranslationHistory([]);
-    setFavorites([]);
-  };
-
-  const swapLanguages = () => {
-    setDirection(direction === "en-am" ? "am-en" : "en-am");
-    setInputText(translatedText);
-    setTranslatedText(inputText);
-  };
-
-  const deleteHistoryItem = (id) => {
-    setTranslationHistory(translationHistory.filter((item) => item.id !== id));
-    setFavorites(favorites.filter((fav) => fav.id !== id));
-  };
-
-  return (
-    <div className="translator-container">
-      <div className="translator-header">
-        <h1>አማርኛ ተርጓሚ</h1>
-        <p>Advanced Amharic-English Translation Tool</p>
-        <div className="language-display">
-          <span>{direction === "en-am" ? "English" : "አማርኛ"}</span>
-          <button className="swap-btn" onClick={swapLanguages}>
-            <FaExchangeAlt />
-          </button>
-          <span>{direction === "en-am" ? "አማርኛ" : "English"}</span>
-        </div>
-      </div>
-
-      <div className="tabs">
-        <button
-          className={activeTab === "translate" ? "active" : ""}
-          onClick={() => setActiveTab("translate")}
-        >
-          Translate
-        </button>
-        <button
-          className={activeTab === "history" ? "active" : ""}
-          onClick={() => setActiveTab("history")}
-        >
-          <FaHistory /> History
-        </button>
-        <button
-          className={activeTab === "favorites" ? "active" : ""}
-          onClick={() => setActiveTab("favorites")}
-        >
-          <FaStar /> Favorites
-        </button>
-      </div>
-
-      {activeTab === "translate" && (
-        <div className="translation-box">
-          <div className="input-section">
-            <textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={
-                direction === "en-am"
-                  ? "Enter English text to translate to Amharic..."
-                  : "ወደ እንግሊዝኛ ለመተርጎም አማርኛ ግልጽ..."
-              }
-              rows={5}
-              disabled={isLoading}
-            />
-            <div className="controls">
-              <button onClick={() => setInputText("")} disabled={!inputText}>
-                Clear
-              </button>
-              <button
-                onClick={translateText}
-                disabled={isLoading || !inputText.trim()}
-                className="translate-btn"
-              >
-                {isLoading ? (
-                  <div className="spinner"></div>
-                ) : (
-                  `Translate to ${
-                    direction === "en-am" ? "Amharic" : "English"
-                  }`
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="output-section">
-            <div className="result-container">
-              {translatedText ? (
-                <p className="translated-text">{translatedText}</p>
-              ) : (
-                <p className="placeholder">
-                  {direction === "en-am"
-                    ? "Translation will appear here..."
-                    : "ትርጉም እዚህ ይታያል..."}
-                </p>
-              )}
-            </div>
-
-            <div className="action-buttons">
-              <button onClick={handleCopy} disabled={!translatedText}>
-                <FaCopy /> Copy
-              </button>
-              <button onClick={handleSpeak} disabled={!translatedText}>
-                <FaVolumeUp /> Speak
-              </button>
-              {translatedText && (
-                <button
-                  onClick={() => toggleFavorite(translationHistory[0]?.id)}
-                  className={translationHistory[0]?.favorite ? "favorited" : ""}
+    return (
+        <div className="translator-page">
+            <div className="translator-container">
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="translator-header"
                 >
-                  <FaStar />{" "}
-                  {translationHistory[0]?.favorite ? "Favorited" : "Favorite"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {(activeTab === "history" || activeTab === "favorites") && (
-        <div className="history-section">
-          <div className="history-header">
-            <h2>
-              {activeTab === "history"
-                ? "Translation History"
-                : "Favorite Translations"}
-            </h2>
-            {activeTab === "history" && (
-              <button
-                onClick={clearHistory}
-                disabled={translationHistory.length === 0}
-              >
-                <FaTrash /> Clear All
-              </button>
-            )}
-          </div>
-
-          {(activeTab === "history" && translationHistory.length === 0) ||
-          (activeTab === "favorites" && favorites.length === 0) ? (
-            <div className="empty-state">
-              <p>
-                No{" "}
-                {activeTab === "history" ? "translation history" : "favorites"}{" "}
-                yet
-              </p>
-            </div>
-          ) : (
-            <ul className="history-list">
-              {(activeTab === "history" ? translationHistory : favorites).map(
-                (item) => (
-                  <li key={item.id} className="history-item">
-                    <div className="history-content">
-                      <div className="history-input">
-                        <strong>
-                          {item.direction === "en-am" ? "English" : "አማርኛ"}:
-                        </strong>{" "}
-                        {item.input}
-                      </div>
-                      <div className="history-output">
-                        <strong>
-                          {item.direction === "en-am" ? "አማርኛ" : "English"}:
-                        </strong>{" "}
-                        {item.output}
-                      </div>
-                      <div className="history-meta">
-                        <span>{item.timestamp}</span>
-                      </div>
+                    <div className="header-content">
+                        <h1 className="header-title">
+                            <FiGlobe className="header-icon" />
+                            አማርኛ ተርጓሚ
+                        </h1>
+                        <p className="header-subtitle">Amharic-English Translator | Learn & Master Amharic</p>
                     </div>
-                    <div className="history-actions">
-                      <button
-                        onClick={() => toggleFavorite(item.id)}
-                        className={item.favorite ? "favorited" : ""}
-                      >
-                        <FaStar />
-                      </button>
-                      <button onClick={() => deleteHistoryItem(item.id)}>
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </li>
-                )
-              )}
-            </ul>
-          )}
-        </div>
-      )}
+                </motion.div>
 
-      {error && <div className="error-message">{error}</div>}
+                {/* Progress Bar */}
+                {progress && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="progress-card"
+                    >
+                        <div className="progress-header">
+                            <div className="progress-info">
+                                <FiBarChart2 className="progress-icon" />
+                                <span>Learning Progress</span>
+                            </div>
+                            <div className="progress-stats">
+                                <span className="stat-badge">
+                                    <FiAward /> {progress.progress?.total_words_learned || 0} words
+                                </span>
+                                <span className="stat-badge">
+                                    <FiTrendingUp /> {progress.progress?.current_streak_days || 0} day streak
+                                </span>
+                            </div>
+                        </div>
+                        <div className="progress-bar">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{
+                                    width: `${Math.min(100, ((progress.progress?.total_words_learned || 0) / 100) * 100)}%`
+                                }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                className="progress-fill"
+                            />
+                        </div>
+                        <div className="progress-achievements">
+                            {progress.progress?.achievements?.map((achievement, i) => (
+                                <span key={i} className="achievement-badge">
+                                    🏆 {achievement}
+                                </span>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
 
-      <div className="quick-phrases">
-        <h3>Common Phrases</h3>
-        <div className="phrase-grid">
-          {Object.entries(dictionary)
-            .slice(0, 12)
-            .map(([key, value]) => (
-              <button
-                key={key}
-                onClick={() => {
-                  setInputText(direction === "en-am" ? key : value);
-                  setTimeout(translateText, 100);
-                }}
-              >
-                <div>{direction === "en-am" ? key : value}</div>
-                <div>{direction === "en-am" ? value : key}</div>
-              </button>
-            ))}
+                {/* Tabs */}
+                <div className="tabs">
+                    {[
+                        { id: 'translate', icon: FiGlobe, label: 'Translate' },
+                        { id: 'history', icon: FiClock, label: `History (${history.length})` },
+                        { id: 'favorites', icon: FiStar, label: `Favorites (${favorites.length})` },
+                        { id: 'vocabulary', icon: FiMessageSquare, label: `Vocabulary (${vocabulary.length})` }
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`tab ${activeTab === tab.id ? 'active' : ''}`}
+                        >
+                            <tab.icon />
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Translation Panel */}
+                <AnimatePresence mode="wait">
+                    {activeTab === 'translate' && (
+                        <motion.div
+                            key="translate"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="translation-panel"
+                        >
+                            <div className="translation-grid">
+                                {/* Source */}
+                                <div className="translation-box">
+                                    <div className="box-header">
+                                        <select
+                                            value={sourceLang}
+                                            onChange={(e) => setSourceLang(e.target.value)}
+                                            className="lang-select"
+                                        >
+                                            <option value="am">አማርኛ (Amharic)</option>
+                                            <option value="en">English</option>
+                                        </select>
+                                        <button onClick={() => setSourceText('')} className="clear-btn">
+                                            <FiRefreshCw /> Clear
+                                        </button>
+                                    </div>
+                                    <textarea
+                                        value={sourceText}
+                                        onChange={(e) => setSourceText(e.target.value)}
+                                        placeholder={sourceLang === 'am' ? 'አማርኛ ጽሑፍ ያስገቡ...' : 'Enter English text...'}
+                                        className="translation-textarea"
+                                    />
+                                    <div className="box-footer">
+                                        <span className="char-count">{sourceText.length} characters</span>
+                                    </div>
+                                </div>
+
+                                {/* Swap Button */}
+                                <button onClick={swapLanguages} className="swap-btn">
+                                    <FiArrowRight />
+                                </button>
+
+                                {/* Target */}
+                                <div className="translation-box">
+                                    <div className="box-header">
+                                        <select
+                                            value={targetLang}
+                                            onChange={(e) => setTargetLang(e.target.value)}
+                                            className="lang-select"
+                                        >
+                                            <option value="en">English</option>
+                                            <option value="am">አማርኛ (Amharic)</option>
+                                        </select>
+                                        <div className="action-btns">
+                                            <button onClick={copyToClipboard} disabled={!targetText} className="icon-btn">
+                                                <FiCopy />
+                                            </button>
+                                            <button onClick={saveToFavorites} disabled={!targetText} className="icon-btn">
+                                                <FiBookmark />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="translation-output">
+                                        {targetText ? (
+                                            <p>{targetText}</p>
+                                        ) : (
+                                            <p className="placeholder">Translation will appear here...</p>
+                                        )}
+                                    </div>
+                                    <div className="box-footer">
+                                        <button onClick={addToVocabulary} disabled={!targetText} className="vocab-btn">
+                                            + Add to Vocabulary
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={translateText}
+                                disabled={isTranslating || !sourceText.trim()}
+                                className="translate-btn"
+                            >
+                                {isTranslating ? (
+                                    <>
+                                        <div className="spinner-small" />
+                                        Translating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FiGlobe />
+                                        Translate
+                                    </>
+                                )}
+                            </button>
+
+                            {/* Common Phrases */}
+                            <div className="common-phrases">
+                                <h3>Common Phrases</h3>
+                                <div className="phrases-grid">
+                                    {Object.entries(commonPhrases).slice(0, 1).map(([category, phrases]) =>
+                                        phrases.slice(0, 6).map((phrase, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => loadPhrase(phrase.amharic, phrase.english)}
+                                                className="phrase-card"
+                                            >
+                                                <span className="phrase-am">{phrase.amharic}</span>
+                                                <FiChevronRight className="phrase-arrow" />
+                                                <span className="phrase-en">{phrase.english}</span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* History Panel */}
+                    {activeTab === 'history' && (
+                        <motion.div
+                            key="history"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="content-panel"
+                        >
+                            <h2>Translation History</h2>
+                            {history.length === 0 ? (
+                                <div className="empty-state">
+                                    <FiClock className="empty-icon" />
+                                    <p>No translation history yet</p>
+                                </div>
+                            ) : (
+                                <div className="history-list">
+                                    {history.map((item) => (
+                                        <div key={item._id} className="history-item">
+                                            <div className="history-content">
+                                                <div className="history-text">
+                                                    <span className="lang-label">{item.source_language === 'am' ? 'አማርኛ' : 'English'}:</span>
+                                                    <p>{item.source_text}</p>
+                                                </div>
+                                                <FiArrowRight className="history-arrow" />
+                                                <div className="history-text">
+                                                    <span className="lang-label">{item.target_language === 'am' ? 'አማርኛ' : 'English'}:</span>
+                                                    <p>{item.target_text}</p>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => deleteHistoryItem(item._id)} className="delete-btn">
+                                                <FiTrash2 />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {/* Favorites Panel */}
+                    {activeTab === 'favorites' && (
+                        <motion.div
+                            key="favorites"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="content-panel"
+                        >
+                            <h2>Favorite Phrases</h2>
+                            {favorites.length === 0 ? (
+                                <div className="empty-state">
+                                    <FiStar className="empty-icon" />
+                                    <p>No favorite phrases yet</p>
+                                </div>
+                            ) : (
+                                <div className="favorites-grid">
+                                    {favorites.map((item) => (
+                                        <div key={item._id} className="favorite-card">
+                                            <div className="favorite-content">
+                                                <p className="favorite-am">{item.phrase_amharic}</p>
+                                                <p className="favorite-en">{item.phrase_english}</p>
+                                            </div>
+                                            <span className="favorite-category">{item.category}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {/* Vocabulary Panel */}
+                    {activeTab === 'vocabulary' && (
+                        <motion.div
+                            key="vocabulary"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="content-panel"
+                        >
+                            <h2>My Vocabulary</h2>
+                            {vocabulary.length === 0 ? (
+                                <div className="empty-state">
+                                    <FiMessageSquare className="empty-icon" />
+                                    <p>No words in vocabulary yet</p>
+                                </div>
+                            ) : (
+                                <div className="vocabulary-grid">
+                                    {vocabulary.map((word) => (
+                                        <div key={word._id} className="vocab-card">
+                                            <div className="vocab-words">
+                                                <p className="vocab-am">{word.word_amharic}</p>
+                                                <p className="vocab-en">{word.word_english}</p>
+                                            </div>
+                                            {word.example_sentence && (
+                                                <p className="vocab-example">"{word.example_sentence}"</p>
+                                            )}
+                                            <div className="vocab-progress">
+                                                <div className="vocab-progress-bar">
+                                                    <div
+                                                        className="vocab-progress-fill"
+                                                        style={{ width: `${word.mastery_level || 0}%` }}
+                                                    />
+                                                </div>
+                                                <span className="vocab-mastery">{word.mastery_level || 0}% mastered</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default AmharicTranslatorPage;
