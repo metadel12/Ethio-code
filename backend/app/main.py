@@ -110,6 +110,9 @@ app.include_router(contact.router, prefix="/api/v1", tags=["contact"])
 app.include_router(gdpr.router, prefix="/api/v1", tags=["gdpr"])
 app.include_router(ws_router, tags=["WebSocket"])
 
+@app.get("/")
+async def root():
+    return {"message": "EthioCode API is running"}
 
 @app.get("/health")
 async def health():
